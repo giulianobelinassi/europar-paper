@@ -1,0 +1,8 @@
+fig1.eps
+history.txt
+llncs.cls
+llncsdoc.pdf
+original_files.txt
+readme.txt
+samplepaper.tex
+splncs04.bst
