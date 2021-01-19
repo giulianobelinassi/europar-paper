@@ -44,6 +44,15 @@ TEX_TEMPS = *.log *.out *.aux *.fdb_latexmk *.bbl *.dvi *.fls *.spl *.blg \
 # o nome é a expansão da variável TARGET_FILE, definida acima.
 all: $(TARGET_FILE)
 
+.ONESHELL:
+check-abstract:
+	words=$$(cat samplepaper.tex | sed -n '/\\begin{abstract}/,/\\end{abstract}/p' | head -n-2 | tail -n+2 | wc -w); \
+	if [ $$words -gt 250 -o $$words -lt 15 ]; then \
+		echo '\e[91m Abstract not between 15 and 250 words! \033[0m'; \
+	else
+		echo '\033[1;32m Abstract is between 15 and 250 words! \033[0m'; \
+	fi
+
 # Agora sim, define o que a regra vai fazer. Após o :, lista todas as
 # dependências para fazer esse arquivo. No caso, é a expansão da variável
 # TEX_FILES e OTHER_FILES
