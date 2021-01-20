@@ -5,6 +5,9 @@
 \documentclass[runningheads]{llncs}
 %
 \usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{rotating}
+\usetikzlibrary{decorations.pathreplacing,shapes,arrows,positioning}
 % Used for displaying a sample figure. If possible, figure files should
 % be included in EPS format.
 %
@@ -133,7 +136,124 @@ a speedup of up to $3.35\times$ to this compilation stage, but up to $1.88x$ in
 total compilation of a file when extending this technique to the RTL passes.
 
 
-\subsection{Link Time Optimization}
+\subsection{Link Time Optimization (LTO)}
+
+Usual compilation just load the content of a module and optimize with respect to
+that. Then it transform the code into assembler and encapsulate it in an object
+file. On the other hard, LTO allows cross module optimizations by
+postponing optimizations and final translation to a ``fake'' link time.
+There, the entire program can be loaded by the compiler
+(more often, just some sort of summary) and optimizations can be decided globally,
+as now it has access to other modules. LTO is divided in three steps
+\cite{whoprgoogle,glek2010optimizing}:
+\begin{itemize}
+\item LGEN (\textit{Local Generation}): each module is translated to an Intermediate
+Language (IR) and writen to disk as an fake object file. This phase runs serially
+on input file (\textit{i.e.} in parallel with regard to the files in the project).
+
+\item WPA (\textit{Whole Program Analysis}): load all translated module and analyze
+the program globally, generating a log of transformations and the Compilation Unit
+is partitioned for the next phase. This analysis runs sequentially to the entire
+project.
+
+\item LTRANS(\textit{Local Transformations}): apply the transformations to each partition.
+This phase runs in parallel.
+\end{itemize}
+
+This process is sketched in Figure \ref{fig:whopr_build}, and the ``fake'' linking
+can be seen in collect2 node, which firstly launch \textit{lto1} in WPA mode, and the second
+time it finally launches \textit{ld}. This process can be seen by launching
+gcc with \texttt{-flto -v}.
+
+\begin{figure}
+\tikzstyle{block} = [rectangle, draw, fill=white,
+    text width=6em, text centered, rounded corners, node distance=1cm and 0.5cm, minimum height=2em]
+\tikzstyle{line} = [draw, -latex]
+\begin{center}
+\scalebox{0.7}{
+\begin{tikzpicture}[node distance = 3cm, auto]
+    % Place nodes
+    \node [block]              (fonte1) {source1.c};
+    \node [block, right= of fonte1]        (fonte2) {source2.cpp};
+    \node [block, right= of fonte2]        (fonte3) {source3.f90};
+    \node [block, above= of fonte2]         (make)   {Makefile};
+
+    \node [block, below= of fonte1]        (gcc)      {gcc};
+    \node [block, below= of fonte2]        (g++)      {g++};
+    \node [block, below= of fonte3]        (gfortran) {gfortran};
+
+    \node [block, below= of gcc]           (objeto1) {obj1.o};
+    \node [block, below= of g++]           (objeto2) {obj2.o};
+    \node [block, below= of gfortran]      (objeto3) {obj3.o};
+
+    \node [block, below= of objeto2]       (gcc_lto) {collect2 (lto1)};
+
+    \node [block, right= of fonte3]            (gcc_ltrans1) {gcc\_ltrans};
+    \node [block, right= of gcc_ltrans1]   (gcc_ltrans2) {gcc\_ltrans};
+    \node [block, right= of gcc_ltrans2]   (gcc_ltrans3) {gcc\_ltrans};
+
+    \node [block, above= of gcc_ltrans2]       (gcc_wpa) {gcc\_wpa};
+    \coordinate[below= of gcc_wpa]            (c2);
+
+
+    \node [block, below= of gcc_ltrans1]   (obj1) {obj1.o};
+    \node [block, below= of gcc_ltrans2]   (obj2) {obj2.o};
+    \node [block, below= of gcc_ltrans3]   (obj3) {obj3.o};
+
+    \node [block, below=of obj2]   (ld) {collect2 (LD)};
+
+	\node [block, below=of ld]   (bin) {Binary};
+
+    % Draw edges
+    \draw[->]    ([xshift=-0.7em] make.south)   -- (fonte1.north);
+    \draw[->]    (make.south)   -- (fonte2.north);
+    \draw[->]    ([xshift=+0.7em] make.south)   -- (fonte3.north);
+
+    \draw[->]    (fonte1.south)   -- (gcc.north);
+    \draw[->]    (fonte2.south)   -- (g++.north);
+    \draw[->]    (fonte3.south)   -- (gfortran.north);
+
+    \draw[->]    (gcc.south)   -- (objeto1.north);
+    \draw[->]    (g++.south)   -- (objeto2.north);
+    \draw[->]    (gfortran.south)   -- (objeto3.north);
+
+    \draw[->]    (objeto1.south)   -- ([xshift=-0.7em]gcc_lto.north);
+    \draw[->]    (objeto2.south)   -- (gcc_lto.north);
+    \draw[->]    (objeto3.south)   -- ([xshift=+0.7em]gcc_lto.north);
+
+    %\draw[->]    (gcc_lto.south)   -- (gcc_wpa.north);
+ 	\draw[->]  (gcc_lto.east) .. controls +(6.5,0) and +(-6.5,0).. (gcc_wpa.west);
+
+    \draw[->]    (gcc_wpa.south)   -- (gcc_ltrans1.north);
+    \draw[->]    (gcc_wpa.south)   -- (gcc_ltrans2.north);
+    \draw[->]    (gcc_wpa.south)   -- (gcc_ltrans3.north);
+
+    \draw[->]    (gcc_ltrans1.south)   -- (obj1.north);
+    \draw[->]    (gcc_ltrans2.south)   -- (obj2.north);
+    \draw[->]    (gcc_ltrans3.south)   -- (obj3.north);
+
+    \draw[->]    (obj1.south)   -- ([xshift=-0.7em]ld.north);
+    \draw[->]    (obj2.south)   -- (ld.north);
+    \draw[->]    (obj3.south)   -- ([xshift=+0.7em]ld.north);
+
+	\draw[->]    (ld.south)   -- (bin.north);
+	
+	%draw brackets
+\draw [decorate,decoration={brace,amplitude=10pt},xshift=-0.5cm,yshift=0pt]
+([xshift=-1.3cm]objeto1.south) -- ([xshift=-1.3cm]fonte1.north) node [black,midway,xshift=-0.3cm]
+{\footnotesize \begin{turn}{90}LGEN\end{turn}};
+
+\draw [decorate,decoration={brace,amplitude=10pt},xshift=-0.5cm,yshift=0pt]
+([xshift=1.3cm]gcc_ltrans3.north) -- ([xshift=1.3cm]obj3.south) node [black,midway,xshift=0.3cm]
+{\footnotesize \begin{turn}{-90}LTRANS\end{turn}};
+
+
+\end{tikzpicture}
+}
+\end{center}
+\caption{Compilation of a program using LTO scheme}
+\label{fig:whopr_build}
+\end{figure}
 
 
 
