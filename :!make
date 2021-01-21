@@ -150,10 +150,7 @@ and optimizations can be decided globally, as now it has access to other modules
 \cite{whoprgoogle,glek2010optimizing}:
 \begin{itemize}
 \item LGEN (\textit{Local Generation}): each module is translated to an Intermediate
-Representation (IR) and written to disk in phony object files. These objects do
-not contain assembler code, and therefore can not be linked by an default linker
-such as \textit{ld} (unless fat objects are enabled, in this case assembler is also
-generated and dumped together with the IR). This phase runs serially
+Language (IR) and writen to disk as an fake object file. This phase runs serially
 on input file (\textit{i.e.} in parallel with regard to the files in the project).
 
 \item WPA (\textit{Whole Program Analysis}): load all translated module and analyze
@@ -267,28 +264,15 @@ time it finally launches \textit{ld}. This process can be seen by launching gcc 
 As presented in Section \ref{lto_section}, LTO was created to allow expensive
 optimizations in industrial sized programs, and has a serial part (WPA), which
 might impose a bottleneck on manycore machines. Classical compilation scheme,
-however, can not break its Compilation Unit, which can also
+however, can not break its Compilation Unit by default, which can also
 bottleneck the compilation if it is too large. Can we transplant the
 LTO partitioner to the Classical Compilation scheme, and make it work
 \textit{without} having the context of the \textit{entire} program?
 The answer is \textit{yes}, and we show that by showing the details
 of our implementation in GCC.
 
-Our approach differs from LTO mainly in how we handle the Interprocedural
-Analysis. LTO handles them with the context of the whole program, while
-our approach will only have the context of the original Compilation Unit.
-This allows optimizations as good as they are in the Classical
-Compilation scheme, while benefiting of the extra parallelism opportunity
-available in the LTO's LTRANS stage.
-
-
 In this section, we will first discuss the insides of an important
 piece of the compiler from the User Experience perspective: the \textit{driver}.
-Then we proceed with a short algorithm for making the LTO partitioner
-work for our proposal. We then present a necessary change we had to do
-in our work about how partitions are applied in GCC, and finally, we
-discuss about how to solve Name Clashing without having the context of the
-entire program.
 
 \subsection{The GCC driver}
 
@@ -367,55 +351,38 @@ The solution for this problem is:
 	object files into another object file.
 \end{enumerate}
 
-Fig. \ref{fig:gnu_toolchain_patched} illustrates the code flow after these
-changes.  The execution starts in the highlighted node \textit{Driver}, which
-calls the compiler with the necessary flag to stablish a communication between
-the parts. The compiler then will partition the Compilation Unit and forks
-itself into several child processes, one for each partition. Then the compiler
-will communicate its output .s file to the driver, which will launch the
-\textit{as} to assemble it, and then launch \textit{ld} to merge them all into
-a single object file.
-
-After these changes, a good way to check if the changes are working is to
-bootstrap the compiler with a single partition, but writing the output
-path into the communication channel. Bootstrapping can be an resource
-intensive task, therefore this is an excellent time to write automated
-tests covering every case necessary for the bootstrap. This may also expose
-some extreme cases, for instance, the C compiler being called to preprocess an
-file of another language.
-
 \begin{figure}
 \tikzstyle{block} = [rectangle, draw, fill=white,
-    text width=6em, text centered, rounded corners, minimum height=2em]
+    text width=6em, text centered, rounded corners, node distance=3cm and 3cm, auto, minimum height=2em]
 \tikzstyle{line} = [draw, -latex]
+\tikzstyle{cloud} = [draw, ellipse,fill=white, node distance=2cm,
+    minimum height=2em]
 \begin{center}
 \scalebox{0.7}{
-\begin{tikzpicture}[node distance = 2.4cm, auto]
+\begin{tikzpicture}[node distance = 3cm, auto]
     % Place nodes
     \node [block]                      (cc1_1) {cc1};
-    \coordinate [right= of cc1]          (c);
-    \node [block, right= of c,fill={rgb:black,1;white,2}]        (driver1) {Driver};
-    \node [block, above= of c]                      (cc1_2) {cc1};
-    \node [block, below= of c]                      (cc1_3) {cc1};
-    \coordinate [above= of driver1]          (c2);
-    \coordinate [below= of driver1]          (c3);
-    \node [block, right= of c2]      (as2) {as};
-    \node [block, right= of c3]      (as3) {as};
-    \node [block, right= of driver1]       (ld) {ld};
+    \node [block, right= of cc1_1]        (driver1) {Driver};
+    \node [block, above= of driver1]                      (cc1_2) {cc1};
+    \node [block, below= of driver1]                      (cc1_3) {cc1};
+    \node [block, right= of cc1_2]      (as2) {as};
+    \node [block, right= of cc1_3]      (as3) {as};
+    \node [block, right= of as]       (ld) {ld};
     \coordinate [left= of cc1]          (fonte);
     \coordinate [right= of ld]    (bin);
 
     % Draw edges
     \draw[->]    (driver1.west)    -- (cc1_1.east) node[midway, above] {\texttt{-fadditional-asm=<file>}};
-    \draw[->]    ([xshift=+0.5cm]cc1_2.south) -- ([xshift=-0.5cm]driver1.north) node[midway, above, sloped] {Generates .s file};
-    \draw[->]    ([xshift=+0.5cm]cc1_3.north) -- ([xshift=-0.5cm]driver1.south) node[midway, above, sloped] {Generates .s file};
+    \draw[->]    (cc1_2.south) -- (driver1.north) node[midway, above] {Generated .s file};
+    \draw[->]    (cc1_3.north) -- (driver1.south) node[midway, above] {Generated .s file};
 
-    \draw[->]    (cc1_1.north)    -- ([xshift=-0.5cm]cc1_2.south) node[midway, above, sloped] {Forks};
-    \draw[->]    (cc1_1.south)    -- ([xshift=-0.5cm]cc1_3.north) node[midway, above, sloped] {Forks};
+    \draw[->]    (cc1_1.north)    -- (cc1_2.south) node[midway, above] {forks};
+    \draw[->]    (cc1_1.south)    -- (cc1_3.north) node[midway, above] {forks};
+    \draw[->]    (cc1_2.east)    -- (as2.west) node[midway, above] {forks};
+    \draw[->]    (cc1_3.east)    -- (as3.west) node[midway, above] {forks};
 
-    \draw[->]    ([xshift=+0.5cm]driver1.north)  -- (as2.south) node[midway, above, sloped] {Assemble received .s};
-    \draw[->]    ([xshift=+0.5cm]driver1.south)  -- (as3.north) node[midway, above, sloped] {Assemble receibed .s};
-    \draw[->]    (driver1.east)  -- (ld.west) node[midway, above, sloped] {Links};
+    \draw[->]    (driver1.east)    -- (asm2.west) node[midway, above] {Launches}};
+    \draw[->]    (driver1.east)    -- (asm3.west) node[midway, above] {Launches}};
 
 %    \draw[->]    (cc1.east)    -- (as.west)       node[midway, above] {Assembler File};
 %    \draw[->]    (cc1.east)    -- (as.west)       node[midway, above] {Assembler File};
@@ -429,135 +396,9 @@ file of another language.
 \end{tikzpicture}
 }
 \end{center}
-\caption{Interaction between the \textit{driver}, the \textit{compiler}, and other tools
-after our changes}
-\label{fig:gnu_toolchain_patched}
+\caption{GCC Compiling a .c file}
+\label{fig:gnu_toolchain}
 \end{figure}
-
-\subsection{Adapting the LTO Partitioner}
-
-In GCC, a Compilation Unit is represented as a callgraph. Every function,
-global variable or their clones (which may represent a function to be inlined)
-are represented as nodes in a callgraph. If there is a function call from $f$
-to $g$, then there is an edge from $f$ to $g$. Similarly, if there is an
-reference to an global variable $v$ in $f$, then there is also an edge from $f$
-to $v$. This means that Compilation Unit partitioning is simply represented as
-a Graph Partitioning problem. 
-
-When LTO is enabled and GCC is in WPA stage, the code content of these nodes
-are not present, just a \textit{summary} of it (\textit{e.g.}the size
-in lines of code it had). This is done to conserve memory. However,
-when LTO is disabled, the contents of the function is present, and this
-resulted in some assertions failure, which were fixed after some debugging.
-
-Then comes the partitioner algorithm \textit{de facto}. In LTO, GCC tries to create
-partitions of similar size, and always try to keep nodes together. The
-heuristic used there is quite complicated to run in linear time, and turned
-out to be complex to find the issues that were causing the partitioning to fail.
-Therefore, we decided to design a new partitioning algorithm for this project.
-
-This partitioning algorithm works as follows: For each node, we check if they
-have some desired property, such as being a member of a COMDAT group, and
-merged into the same partition. We then propagate outside of this COMDAT group
-checking for every node that may trigger the COMDAT to be copied into other
-partitions, and also add them to the same partition. In practice,
-this means to include every node hit by a Depth-First
-Search (DFS) from the group to an non-cloned node outside of the group.
-Fig. \ref{fig:comdat_frontier} represents sketches this process.
-
-\begin{figure}
-\centering
-	 \includegraphics[scale=0.8]{figuras/comdat_frontier.pdf}
-	  \caption{Example of callgraph, in beige being represented the COMDAT group,
-	  in green the COMDAT frontier, and in red the cloned nodes.}
-	  \label{fig:comdat_frontier}
-\end{figure}
-
-At first we we also did this process for private functions to avoid having to
-promote them then to public, once external access would be necessary if they go
-into distinct partitions. However, results showed that this have a strong
-negative hit in any parallelism opportunity. For grouping the nodes together,
-we used an Union Find with Path Compression, which has an attractive
-computational complexity of $O(M \lg^*(N))$, where $M$ is the number of
-operations and $N$ is the number of nodes in the callgraph.
-
-Once the partitions are computed, we need to compute its \textit{boundary}
-If function $f$ calls $g$, but they were assigned into distinct partitions,
-then we must include a version of $g$ in $f$'s partitions without its body,
-then check if $g$ is a private function. If yes, them $g$ must be promoted
-to a public function. Fortunately, most of this logic is already present
-in LTO and we could simply reuse them. However, some issues were found
-when handling inline functions and global variables marked as being part
-of the boundary. The first being some functions marked to be inlined into 
-functions inside the partition were incorrectly marked to be removed.
-The second being variables marked as in the boundary (and therefore
-not in the partition) not being correctly promoted to global. These issues
-were hard to find the reason of, but easy to fix.
-
-Furthermore, there were some issues with
-regard to how GCC handle partitions, which we discuss in the next subsection.
-
-\subsection{Applying a Partition Mask}
-
-Once partitions are computed, the only presented way to apply it (\textit{i.e.}
-remove every unnecessary node from the Compilation Unit) was to reload the
-compiler, and let it load the phony object files, which are not available in our
-project because we are not running in LTO mode. We developed another method for this.
-We used the Unix \textit{fork} function to spawn a child process, and then
-we implemented our own method to apply the partition without having to load
-there phony object files. Fortunately, this consisted
-of four cases:
-\begin{itemize}
-	\item Node is in partition. Nothing has to be done.
-	\item Node is in boundary: We mark this mode as having its body removed,
-	but we never actually do remove it. This is because the node may share the
-	body contents with another node in the partition. We then remove
-	every edge from its functions to it callees, all references to variables,
-	the content of the dominator tree, and also its Control-Flow Graph. This
-	is now a function which we only know that it exists.
-	
-	\item Node is in boundary, but keep its body: We just set a set of
-	attributes to false, but we do not do anything too drastic about it.
-
-	\item Node not in boundary: We remove the node, and all its content.
-\end{itemize}
-
-After this, it retargets the output assembler file to another file,
-and write its partition number together with the path to the communication
-file, which the driver will read in the future. The partition number is
-important to guarantee that the build is reproducible, as we will discuss
-later.
-
-It is important that some early step in the compiler does not emit assembler
-too early, as were the issue with the Gimplifier in GCC, or else the output
-file will be incomplete. We had to fix the gimplifier to avoid that.
-
-Once the partition is applied to the current process, then it can
-continue with the compilation. It should be running in parallel
-now by the number of partitions.
-
-\section{Name Clash Resolution}
-
-In LTO, if there are two promoted symbols to global with the same name, it is
-quite straightforward to fix this issue. Since we have the context of the
-entire program, we can simply increment a counter for each clashed symbol and
-rename them. However, we have not the context of the entire program, and we
-have to find another way of fixing it.
-
-One will be tempted to simply select an random integer and append to the name.
-This is not a good idea, once it will break bootstrap because each
-compilation will result in a different object file. Using the address of the
-function in memory does not work either, as the first bootstrap step has the
-compiler compiled with \texttt{-O0} and the second step with \texttt{-O2}, and
-memory address will certainly be different.
-
-The solution is to
-use a crc32 hash of the original file and append them to the function's name,
-since we can not have two functions with the same (mangled) name in the program.
-There is still a probability of name clash with this approach, however we did
-not find any on our tests.
-
-\section{Relationship with Reproducible Builds}
 
 %
 % ---- Bibliography ----
