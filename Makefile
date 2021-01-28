@@ -26,7 +26,7 @@ TARGET_FILE = $(FILE).pdf # Arquivo de saída
 
 TEX_FILES = $(FILE).tex
 AUX_FILES = $(FILE).aux
-BIB_FILES = references.bib # Arquivo de bibliografia
+BIB_FILES = bibliography.bib # Arquivo de bibliografia
 IMAGE_FILES = $(shell find 'figuras/')  # Todas as imagens
 TABLE_FILES = $(shell find 'tabelas/')  # Todas as tabelas
 
