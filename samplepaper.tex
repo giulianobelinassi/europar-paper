@@ -35,7 +35,7 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Giuliano Belinassi\inst{1} \and Richard Biener\inst{2} \and Jan Hubi\v cka \inst{2,3} \and Alfredo Goldman\inst{1}}
+\author{Giuliano Belinassi\inst{1} \and Richard Biener\inst{2} \and Jan Hubi\v cka \inst{3} \and Alfredo Goldman\inst{1}}
 %
 \authorrunning{G. Belinassi et al.}
 % First names are abbreviated in the running head.
@@ -43,10 +43,10 @@
 %
 \institute{Institute of Mathematics and Statistics, Rua do Matão 1010, São Paulo SP, BRA\\
 \url{https://www.ime.usp.br} \and
-SuSE Labs, Nürnberg 90409, GER\\
+SUSE Labs, Nürnberg 90409, GER\\
 \url{https://www.suse.com/} \and
 Charles University, Malostransk én ám. 25. 11800 Praha, CZE\\
-\url{https://cuni.cz/uken-1.html}}
+\url{http://kam.mff.cuni.cz/}}
 
 %
 \maketitle              % typeset the header of the contribution
@@ -60,8 +60,7 @@ in commercial compilers for single file parallel compilation, with simple
 modifications in the Link Time Optimization (LTO) engine; which we show by
 implementing it in GCC. This method resulted in a 35\% speedup when
 self-compiling GCC when compared to \texttt{make -j} only parallelism, and
-up to $3.5\times$ speedup when compiling individual files. We also found no
-meaningful slowdown when compiling other applications with Jobserver disabled.
+up to $3.5\times$ speedup when compiling individual files. 
 Finally, we explain why the adoption of our proposed method is still compatible
 with the Reproducible Builds project.
 
@@ -89,26 +88,30 @@ to develop and improve them, such as the GNU Compiler Collections
 of translating several languages such as C, C++, and Fortran, to machine language.
 
 GCC was started by Richard Stallman, with the first public release in March of
-1987. Back then, it
-only supported the C language, but already allowed code generation for several
-architectures \cite{gcc-first-ver}. Today, GCC is a multinational collaboration
-project, with more than 412230 lines of code, and perhaps the most used C/C++
+1987, supporting C language and targeting several architectures
+\cite{gcc-first-ver}. Today, GCC is a multinational collaboration
+project, with hundreds of thousands of lines of code, and perhaps the most used C/C++
 compiler in Linux environments.
 
 GCC was Initially designed to compile programs a single file at time, meaning
 that it could not allow global cross-file optimizations because the compiler
 never had the opportunity to analyze the program as a whole. This scenario
-changed when Link Time Optimization (LTO) was proposed \cite{whoprgoogle} and
+changed when Link Time Optimization (LTO) was proposed \cite{gcc-lto,whoprgoogle} and
 implemented in GCC \cite{glek2010optimizing}. GCC supports LTO by using
 \texttt{-flto}. Part of the LTO engine has already been parallelized, which
 inspired this work.
 
-This work tries to answer the question about how can we modify a
+The main contribution of this work is answer the question about how can we modify a
 industrial scale compiler to compile single files in parallel. We address
 that by reusing the already-existing LTO engine in it (in this
-case, GCC) for partitioning the single file Compilation Unit after the
-Interprocedural Optimizations has been decided, and we proceed compiling
-each partition individually, in parallel.
+case, GCC) for partitioning the single file Compilation Unit (CU) after the
+Interprocedural Analysis (IPA) has been decided, and we proceed compiling
+each partition individually, in parallel. IPA includes only interprocedural
+optimizations, which requires interactions between distinct functions to optimize
+(\emph{e.g.} inliner). There is already a way to instruct
+the LTO engine to partition a single file CU by using
+\texttt{-flto -flinker-output=nolto-rel}, but with phony object creation
+overhead and no guarantee of correct name clash resolution.
 
 We present the previous efforts in compiling a single file in
 parallel, as well as an introduction to LTO in Section \ref{sec:related}.
@@ -121,18 +124,17 @@ in Section \ref{sec:future_works}.
 
 \section{Related Works} \label{sec:related}
 
-Parallel Compilation includes parsing (parallel or not),
-how to perform analysis, optimization, and code translation in parallel.
-Given an alphabet $\mathrm{\Sigma}$, parsing can be described as building a machine to decide if
-an input string $w \in \mathrm{\Sigma}^*$ is a member of a certain language $L
-\subseteq \mathrm{\Sigma}^*$ or not, creating the Abstract Syntax Tree in the
-process by logging the used derivation rules.
+Parallel Compilation includes parsing (parallel or not), how to perform
+analysis, optimization, and code translation in parallel.  Parsing can be
+described as building a machine to decide if an input string is a member of a
+certain language or not, creating the Abstract Syntax Tree in the process by
+logging the used derivation rules.
 
 Parallel Parsing dates back to 1970. Lincoln \cite{Lincoln:1970:PPT:987475.987478}
 explored how to use the vectorial registers in the (so far)
 STAR-100 supercomputer for lexical analysis. Fischer
 \cite{fischer1975parsing} gives a detailed theoretical study, proving
-several concurrent parsing techniques for LR($k$), LALR($k$) and SLR($k$).
+several concurrent parsing techniques for LR($k$) family.
 The parser proceeds by breaking the input in several arbitrary parts, and running a
 serial parser on each of them. Then the algorithm tries to
 recover the stack of each noninitial parser by constructing a set of
@@ -140,30 +142,54 @@ possible states, for which there are 5 possible cases. However, in case
 of an error, the parser result should be discarded, and therefore a lot
 of work will be done in vain when comparing with the sequential version.
 
-Perhaps the most interesting work is by Barenghi \textit{et. al.}
-\cite{Barenghi:2015:PPM:2839536.2840146}, where they explore properties of
-Operator Precedence Grammars to construct an Yacc-like parser constructor named
-PAPAGENO, which generates parallel parsers. The authors described
-precedence grammars for Lua and JSON, which they used in their tests to get
-a speedup of up to $5.5\times$ when compared to a parser generated by
-GNU Bison.
+Fowler and Joshua \cite{fowler2009parallel} described how to parallelize Earley
+and Packrat methods. For the former, the authors partition the Earley sets into
+a sub-blocks, and run each block in parallel. For solving the dependency across
+the blocks, the authors proposes a way to speculate additional items into the
+parser, which is not produced by the serial algorithm. For Packrat, the authors
+propose a message passing mechanism.  The input is divided in parts, and each
+part is assigned to a worker thread.  Then each thread speculates until the
+thread on its left has finished parsing, and send the synthesized starting
+symbol to the thread on its right. The authors managed a speedup of $5.5\times$
+in Earley, and $2.5\times$ in Packrat.
 
-As for parallel compilation \textit{de facto}, we found two relevant works by
-Vandevoorde \cite{vandevoorde1988parallel} for C, and Wortman and Junkin
-\cite{wortman1992} for Modula-2+.  The former assumes that every function
-declaration is in the file headers, and implements per-function and
-per-statement parallel compilation. The letter implements only per-function
-parallelism.  Speedups ranged from $1.5\times$ to $6\times$ on a multicore
-MicroVAX II machine. None of these papers discuss optimization, and they
-concentrate on (today perspective) non-optimizer compilers, which are not
-the case of GCC. 
+Still on Packrat methods, Dubroy and Warth \cite{dubroy2017incremental} shows
+how to implement an incremental Pacrkat to avoids reparsing the entire input
+again on modifications. The authors archive this by recording all its
+intermediate results in a parsing table, and modify the parsing program to reload
+this table when invoked. The authors showed that their method do not require
+any modification to the original grammar, and their method require only
+up to $11.7\%$ of extra memory when compared to the original parser. Authors
+claim a reduction from $23.7ms$ to $6.2ms$ on reparsing a 279Kb input string.
+
+Barenghi \textit{et. al.} \cite{Barenghi:2015:PPM:2839536.2840146} explore
+some properties of Operator Precedence Grammars to construct an Yacc-like
+parser constructor named PAPAGENO, which generates parallel parsers. The
+authors described precedence grammars for Lua and JSON, which they used in
+their tests to get a speedup of up to $5.5\times$ when compared to a parser
+generated by GNU Bison.
+
+As for parallel compilation \textit{de facto}, works dates back from 1988.
+Vandevoorde \cite{vandevoorde1988parallel} worked on a C compiler, and Wortman
+and Junkin \cite{wortman1992} worked on a Modula-2+ compiler.  The former
+assumes that every function declaration is in the file headers, and implements
+per-function and per-statement parallel compilation. The latter implements only
+per-function parallelism.  Speedups ranged from $1.5\times$ to $6\times$ on a
+multicore MicroVAX II machine. None of these papers discuss optimization, and
+they concentrate on (today perspective) non-optimizer compilers, which are not
+the case of GCC.
+
+Lattner \emph{et. al.} proposed MLIR, an IR which aims to unify several
+Machine Learning frameworks and compilers IR \cite{mlir}. Its design also include
+support to multithreaded compilation by supporting concurrent transversal
+and modification of the IR.
 
 There has been an attempt of parallelizing GCC by threading the GIMPLE
-Intraprocedural pass manager \cite{bernardino2020improving}. An optimization is
-called Intraprocedural if it only requires information contained inside its body.
-The \textit{vectorizer} is an example of this. The authors managed a speedup of up to
-$3.35\times$ to this compilation stage, and up to $1.88\times$ in
-total compilation of a file when extending this technique to the RTL passes.
+intraprocedural pass manager \cite{bernardino2020improving}. An optimization is
+called intraprocedural if it only requires information contained inside its
+body (\textit{e.g.} vectorization). The authors managed a speedup of up to
+$3.35\times$ to this compilation stage, and up to $1.88\times$ in total
+compilation of a file when extending this technique to the RTL passes.
 
 \subsection{Link Time Optimization (LTO)} \label{lto_section}
 
@@ -171,7 +197,7 @@ Compilation usually uses the following scheme: a compiler consumes a source file
 generating an assembler file as output. This file is then assembled into an object file,
 and later linked with the remaining objects file to compose an executable or a library.
 Fig. \ref{fig:gnu_toolchain} illustrates this process for a single file. In this paper,
-we call this method the Classical Compilation scheme.
+we call this method the \emph{classical compilation} scheme.
 
 \begin{figure}
 \tikzstyle{block} = [rectangle, draw, fill=white,
@@ -185,7 +211,7 @@ we call this method the Classical Compilation scheme.
     % Place nodes
     \node [block]                      (cc1) {Compiler \\ (cc1)};
     \node [block, right of = cc1]      (as) {Assembler\\(as)};
-    \node [block, right of = as]       (ld) {Linker\\collect2 or ld};
+    \node [block, right of = as]       (ld) {Linker};
     \coordinate [left of=cc1]          (fonte);
     \coordinate [right of=ld]    (bin);
 
@@ -200,33 +226,31 @@ we call this method the Classical Compilation scheme.
 \end{tikzpicture}
 }
 }%
-\caption{GCC Compiling a .c file in Classical Compilation mode}
+\caption{GCC Compiling a .c file in \emph{classical compilation} mode}
 \label{fig:gnu_toolchain}
 \end{figure}
 
-The issue around the Classical Compilation scheme is that it can only optimize with
-the information found in its Compilation Unit because it can not see the body
-content of functions in other files of the project. A Compilation Unit is the
+The issue around this scheme is that it can only optimize with
+the information found in its Compilation Unit (CU) because it can not see the body
+content of functions in other files of the project. A CU is the
 entire content of a source file (a .c file in C) plus all headers it includes.
 
 As an answer to this, LTO allows cross-module optimizations by
 postponing optimizations and final translation to a linker wrapper. There, the entire
 program can be loaded by the compiler (but more often, just some sort of summary)
-as a single, big Compilation Unit, and optimizations can be decided globally,
+as a single, big CU, and optimizations can be decided globally,
 as now it has access to the internals of other modules. LTO is divided into
 three steps \cite{whoprgoogle,glek2010optimizing}:
 \begin{itemize}
 \item LGEN (\textit{Local Generation}): each module is translated to an Intermediate
-Representation (IR) and written to disk in phony object files. These objects do
-not contain assembler code, and therefore can not be linked by a default linker
-such as \textit{ld} (unless fat objects are enabled, in this case, the assembler is also
-generated and dumped together with the IR). This step runs serially
+Representation (IR) and written to disk in phony object files. These objects
+are \emph{phony} because they do not contain assembler code. This step runs serially
 on the input file (\textit{i.e.} in parallel with regard to the files in the project).
 
 \item WPA (\textit{Whole Program Analysis}): load all translated modules, merges
-all Compilation Units into one, and analyzes the program globally.
-Then it generates a log of transformations for the program, and this global
-Compilation Unit is partitioned for the next stage. This analysis runs sequentially
+all CUs into one, and analyzes the program globally.
+Then it generates an \emph{optimization summary} for the program, and this global
+CU is partitioned for the next stage. This analysis runs sequentially
 to the entire project.
 
 \item LTRANS (\textit{Local Transformations}): apply the transformations generated by
@@ -323,6 +347,11 @@ can be seen by launching gcc with \texttt{-flto -v}.
 {\footnotesize \begin{turn}{-90}LTRANS\end{turn}};
 
 
+\draw [decorate,decoration={brace,amplitude=10pt},xshift=-0.5cm,yshift=0pt]
+([xshift=1.3cm]gcc_wpa.north) -- ([xshift=1.3cm]gcc_wpa.south) node [black,midway,xshift=0.3cm]
+{\footnotesize \begin{turn}{-90}WPA\end{turn}};
+
+
 \end{tikzpicture}
 }
 }%
@@ -330,26 +359,41 @@ can be seen by launching gcc with \texttt{-flto -v}.
 \label{fig:whopr_build}
 \end{figure}
 
+There is also works using a profile-based approach rather than a whole-program
+analysis for cross-module optimizations.  Xinliang \textit{et. al.}
+\cite{lipo} proposed LIPO, which embed IPA in the generated
+binary with minimal overhead, and loads information about functions in other
+modules based on the profiling report. LIPO also removes the requirement of
+phony objects dumps and link time wrappers when compared to LTO. Results showed
+an speedup of up to $10\times$ in compilation time when compared to Feedback
+Driver Optimization (FDO) alone.
+
+Following that, Johnson \textit{et. al.} proposes ThinLTO \cite{thinlto}. It
+differs from LTO by generateing the function summaries on LGEN stage for
+improved parallelism, while avoiding the large memory footprint requirement on
+original LTO. ThinLTO also supports incremental builds by hashing the compiled
+function to avoid recompilation of unmodified functions, while LTO requires
+recompilation of the entire partition. Most GCC's WPA
+optimizations is already summary based to avoid this memory issue.
+
+
 \section{Our Proposal} \label{sec:work}
 
 As presented in Section \ref{lto_section}, LTO was created to allow
 cross-module optimizations in programs, and has a serial part (WPA), imposing a
-bottleneck on manycore machines. On the other hand, Classical Compilation
-scheme can not partition its Compilation Unit for parallel
+bottleneck on manycore machines. On the other hand, \emph{classical compilation}
+scheme can not partition its CU for parallel
 compilation, which can also bottleneck the compilation if it is too large.
 The latter issue, however, can be solved by transplanting the LTO partitioner
-to the Classical Compilation scheme, and making it work \textit{without}
+to the \emph{classical compilation} scheme, and making it work \textit{without}
 having the context of the \textit{entire} program. We claim that it is possible,
 and show that by implementing it in GCC.
 
-Our approach differs from LTO mainly in how we handle the Interprocedural
-Optimization. An optimization is called Interprocedural if it requires
-information of the body of other functions to optimize a certain function.
-An example of such optimizations is the \textit{inliner}.
+Our approach differs from LTO mainly in how we handle the IPA.
 LTO handles these optimizations with the context of the whole program, while
-our approach will only have the context of the original Compilation Unit.
-This allows optimizations as good as they are in the Classical
-Compilation scheme while benefiting of the extra parallelism opportunity
+our approach will only have the context of the original CU.
+This allows optimizations as good as they are in the \emph{classical
+compilation} scheme while benefiting of the extra parallelism opportunity
 available in the LTO's LTRANS stage.
 
 In this section, we will first discuss the internals of some parts of GCC,
@@ -362,7 +406,7 @@ the LTO partitioner work for our proposal. In Subsection
 about how partitions are applied in GCC. In
 Subsection \ref{sec:name_clash_resolution}, we explain how we solved the issue
 of private symbols with the same name being promoted to global.
-Then in Subsection \ref{sec:integration_jobserver} we present an opitional part
+Then in Subsection \ref{sec:integration_jobserver} we present an optional part
 of our work about communicating with the GNU Make Jobserver to keep track of
 used processors. And finally, we discuss why our proposal is still compatible
 with the Reproducible Builds project in Subsection \ref{sec:repro_builds}.
@@ -372,8 +416,8 @@ with the Reproducible Builds project in Subsection \ref{sec:repro_builds}.
 A large program can be written in several languages, with each of them having
 its own compiler. From a Compiler Theory perspective, a compiler
 translates a program from a language $A$ to an language $B$
-\cite{dragonbook}. In GCC, it translates several languages, such
-as C, to Assembler of some architecture (\textit{e.g.} x86). This means that
+\cite{dragonbook}. In GCC, it translates several languages to Assembler
+of some architecture (\textit{e.g.} x86). This means that
 encapsulating code in object files, or linking the code in an executable, are
 not tasks of the compiler. However, the user can launch \texttt{gcc -o binary
 file.c} and get a working binary. That is because the binary \texttt{gcc} is
@@ -388,49 +432,45 @@ not multiple, as does the LTO partitioner. Fortunately we can rely on GNU \texti
 partial linking for merging objects file into one. Therefore, the solution to this problem
 is:
 \begin{enumerate}
-	\item Patch the \textit{partitioner} to communicate the location of
-	each file created to the \textit{driver}. If the \textit{partitioner}
-	is the compiler (which is the case of GCC), then it should communicate
-	the location of each generated \textit{assembler file}. This can be
+	\item Patch the LTO \textit{partitioner} to communicate the location of
+	each created assembler file (.s) to the \textit{driver}. This can be
 	archived by passing a hidden flag \texttt{-fadditional-asm=<file>}
 	by the driver to the partitioner, which the last will write to. This file can also
 	be replaced with a Named Pipe for better performance if needed.
 
-	Then, the partitioner checks if this flag has been passed to the compiler. If yes, then
-	a \textit{compatible version} of the driver is installed. If the
-	partitioner decides to partition the Compilation Unit, it should
-	\textit{retarget} the destination assembler file and write the retargeted
-	name to the communication file.
+	Then, the partitioner checks if this flag has been passed to the compiler.
+	If yes, then a \textit{compatible version} of the driver is installed. If
+	the partitioner decides to partition the CU, it should \textit{retarget}
+	the destination assembler file and write the retargeted name to the
+	communication file.
 
 	\item Patch the driver to pass this hidden flag to the
-	\textit{partitioner}, and also check if this file exists. If not, it means that
-	either the compiler is incompatible (assuming it did not halt with an
-	error) or it has chosen not to partition the Compilation Unit. In the first
-	case, the driver should call \textit{as} to every assembler file generated, and call
-	the linker to generate the expected final object file. In the second case,
-	simply fallback to the previous compilation logic.
+	\textit{partitioner}, and also check if this file exists. If not, it means
+	that either the compiler is incompatible or it has chosen not to partition
+	the CU. In the first case, the driver should call \textit{as} to every
+	assembler file generated, and call the linker to generate the expected
+	final object file. In the second case, simply fallback to the previous
+	compilation logic.
 \end{enumerate}
 
 Fig. \ref{fig:gnu_toolchain_patched} illustrates the code flow after these
 changes.  The execution starts in the highlighted node \textit{Driver}, which
 calls the compiler with the necessary flag to establish a communication between
-the parts. The compiler then will partition the Compilation Unit and forks
-itself into several child processes, one for each partition. Although there is
-a clear difference between a \textit{process} and a \textit{thread}, we will
-use this term interchangeable in this work.
+the parts. The compiler then will partition the CU and forks
+itself into several child processes, one for each partition.
 
-Once multiple processes are created, the the compiler will communicate its
+Once multiple processes are created, the compiler will communicate its
 output .s file to the driver, and the driver then will launch the \textit{as}
 to assemble it, and then launch \textit{ld} to merge them all into a single
 object file.
 
-After these changes, a good way to check if the changes are working is to
-bootstrap the compiler with a single partition, but writing the output
-path into the created communication channel. Bootstrapping can be a resource
-intensive task; therefore this is an excellent opportunity to write automated
-tests covering every case necessary for the bootstrap. This may also expose
-some extreme cases, for instance, the C compiler being called to process macros
-in files of distinct languages.
+%After these changes, a good way to check if the changes are working is to
+%bootstrap the compiler with a single partition, but writing the output
+%path into the created communication channel. Bootstrapping can be a resource
+%intensive task; therefore this is an excellent opportunity to write automated
+%tests covering every case necessary for the bootstrap. This may also expose
+%some extreme cases, for instance, the C compiler being called to process macros
+%in files of distinct languages.
 
 \begin{figure}
 \tikzstyle{block} = [rectangle, draw, fill=white,
@@ -470,8 +510,8 @@ in files of distinct languages.
 %    \draw[->]    (cc1.east)    -- (as.west)       node[midway, above] {Assembler File};
 %
 %    \draw[->]    (cc1.east)    -- (as.west)       node[midway, below] {(.s)};
-%    \draw[->]    (as.east)     -- (ld.west)       node[midway, above] {Object File};
-%    \draw[->]    (as.east)     -- (ld.west)       node[midway, below] {(.o)};
+    \draw[->]    ([xshift=+0.5cm]as2.south)     -- (ld.north)       node[midway, above, sloped] {Object File};
+    \draw[->]    ([xshift=+0.5cm]as3.north)     -- (ld.south)       node[midway, below, sloped] {Object File};
 %    \draw[->]    (fonte.west)  -- (cc1.west)      node[pos=0, above] {Source File};
 %    \draw[->]    (fonte.west)  -- (cc1.west)      node[pos=0, below] {(.c)};
     \draw[->]    (ld.east)     -- (bin.west)      node[pos=1, above] {\texttt{file.o}};
@@ -485,13 +525,12 @@ after our changes}
 
 \subsection{Adapting the LTO Partitioner}\label{sec:lto_partitioner}
 
-In GCC, a Compilation Unit is represented as a callgraph. Every function,
-global variable, or clones (which may represent a function to be inlined)
-is represented as nodes in a callgraph. If there is a function call from $f$
-to $g$, then there is an edge from $f$ to $g$. Similarly, if there is a
-reference to an global variable $v$ in $f$, then there is also an edge from $f$
-to $v$. This means that Compilation Unit partitioning can be represented as
-a Graph Partitioning problem. 
+In GCC, a CU is represented as a callgraph. Every function, global variable, or
+clones (which may represent a function to be inlined) is represented as nodes
+in a callgraph. If there is a function call from $f$ to $g$, or there is a
+reference to an global variable $g$ in $f$, then there is an edge from $f$ to
+$g$. This means that CU partitioning can be represented as a \emph{graph
+partitioning} problem. 
 
 When LTO is enabled and GCC is in the WPA stage, the body of these nodes
 is not present, just a \textit{summary} of it (\textit{e.g.} the size
@@ -507,17 +546,17 @@ and solving the issues causing a partitioning failure, and therefore, we
 decided to design a new partitioning algorithm for this project.
 
 This partitioning algorithm works as follows: for each node, we check if they
-are a member of a COMDAT group, and
+are a member of a COMDAT \cite{comdat} group, and
 merged it into the same partition. We then propagate outside of this COMDAT group;
 checking for every node that may trigger the COMDAT to be copied into other
-partitions, and also add them to the same partition. In practice,
+partitions, and group them into the same partition. In practice,
 this means to include every node hit by a Depth-First
 Search (DFS) from the group to a non-cloned node outside of the group.
 Fig. \ref{fig:comdat_frontier} represents a sketch of this process.
 
 \begin{figure}
 \centering
-	 \includegraphics[scale=0.8]{figuras/comdat_frontier.pdf}
+	 \includegraphics[scale=0.7]{figuras/comdat_frontier.pdf}
 	  \caption{Example of callgraph, in beige being represented the COMDAT group,
 	  in green the COMDAT frontier, and in red the cloned nodes.}
 	  \label{fig:comdat_frontier}
@@ -552,7 +591,7 @@ partitions, which we discuss in the next subsection.
 \subsection{Applying a Partition Mask}\label{sec:partition_mask}
 
 Once partitions are computed, the only presented way to apply it (\textit{i.e.},
-remove every unnecessary node from the Compilation Unit) was to reload the
+remove every unnecessary node from the CU) was to reload the
 compiler, and let it load the phony object files, which are not available in our
 project because we are not running in LTO mode. We developed another method for this.
 We used the Unix \textit{fork} function to spawn a child process, and then
@@ -574,7 +613,7 @@ of four cases:
 \end{itemize}
 
 After this, it retargets the output assembler file to another file private to
-this partition and write its partition number together with the path to the
+this partition and write a pair (\textit{partition number, path to file}) into the
 communication file, which the driver will read in the future. The partition
 number is important to guarantee that the build is reproducible, as we will
 discuss later.
@@ -589,37 +628,32 @@ should be running in parallel now by the number of partitions.
 
 \subsection{Name Clash Resolution}\label{sec:name_clash_resolution}
 
-In LTO, if there are two promoted symbols to global with the same name, it is
-quite straightforward to fix this issue. Since we have the context of the
-entire program, we can simply increment a counter for each clashed symbol and
-rename them. However, we have not the context of the entire program, and we
-have to find another way of fixing it.
+In LTO, if there are two promoted symbols to global with the same name, a
+straightforward way to fix that is to increment a counter for each clashed
+symbol. This is possible because LTO have the context of the entire program,
+which we do not. Therefore, we need another way of fixing it.
 
-One will be tempted to simply select an random integer and append to the name.
-This is not a good idea, once it will break bootstrap because each
-compilation will result in a different object file. Using the address of the
-function in memory does not work either, as the first bootstrap step has the
-compiler compiled with \texttt{-O0} and the second step with \texttt{-O2}, and
-memory address will certainly be different.
+Two naive approaches would be select a random integer and append to the function's name,
+or append the memory address of the function object to the function's name.
+Both of them breaks bootstrap, the first because output functions will have
+distinct names on every new compilation. The second because stage 1
+compiles with \texttt{-O0} and the second step with \texttt{-O2}, which will
+change the memory address between runs.
 
-The solution is to
-use a crc32 hash of the original file and append it to the function's name,
-since we can not have two functions with the same (mangled) name in the program.
-There is still a tiny probability of name clash with this approach, however we did
-not find any on our tests.
+Our solution is to use a crc32 hash of the original file and append it to the
+function's name, since we can not have two functions with the same (mangled)
+name in the program.  There is still a tiny probability of name clash with this
+approach, however we did not find any on our tests.
 
 \subsection{Integration with GNU Make Jobserver}\label{sec:integration_jobserver}
 
-GNU Make is able to launch jobs in parallel by using \texttt{make -j}. This
-is so simple and yet so powerful that even recent building scripts (such as CMake)
-relies on Make for launching jobs.
-
-In order to avoid unnecessary partitioning and job creation, we have also
+GNU Make is able to launch jobs in parallel by using \texttt{make -j}.
+To avoid unnecessary partitioning and job creation, we have also
 implemented a integration mechanism with GNU Jobserver \cite{posixjobserver}.
 The implementation
 is simple: we query the server for an extra token. If we receive the token,
 then it means that some processor is available, and we can partition the
-Compilation Unit and launch jobs inside the compiler. Else, the processor
+CU and launch jobs inside the compiler. Else, the processor
 workload is full, and it may be better to avoid partitioning altogether.
 
 However, for a program to be able to communicate with the jobserver,
@@ -638,7 +672,7 @@ he got a distinct binary because his/her system is different from the user.
 
 The Reproducible Builds aims to solve that issue by providing a way to
 reproduce the released binary from its source. Some software needs to
-be patched in order to work with Reproducible Builds, for instance,
+be patched to work with Reproducible Builds, for instance,
 to not contain some kind of build timestamp, and so on. A build
 is called \textit{reproducible} if given the same sourcecode and build
 instructions, anyone can recreate a bit-perfect version of the distributed
@@ -692,16 +726,14 @@ We ensure the correctness of our changes by:
 	which we fixed.
 \end{enumerate}
 
-Then for the time measurements, we sampled $n = 15$ points for each file from
-the GCC project, which we present the average in the graphics. The errorbars
-represents 95\% confidence interval for the sample average. Furthermore, each
-file were preprocessed by the C preprocessor, so it could be compiled independently
-of other files.
+Then for the time measurements, all points represents the average of collected
+samples, with errorbar representing a $95\%$ confidence interval.
 
-For the projects, each point represents a mean were compiled with $n = 5$ points,
-because this is a more computer intensive task. The errorbars also represent a 95\%
-confidence interval of the average. We also were sure that the serial data was also
-compiled with \texttt{-g0} for fairness.
+Our test files consisted of preprocessed source files from GCC, which compiles
+without external includes. We collected $n = 15$ samples for every one of these
+files. For the projects, we collected $n = 5$ samples because compilation is a
+computer intensive task. We made sure that in every test, \texttt{-g0} was passed
+for fairness.
 
 Tests were mainly executed in two computers, which are represented
 in the Table \ref{table:machines}. The graphic caption specify where the test
@@ -715,8 +747,8 @@ branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{e2da2f7205}.
 \begin{tabular}{c|c|c|c|c|}
 \cline{2-5}
                                       & Number of Cores & Number of Threads & RAM                                                    & Disk Type \\ \hline
-\multicolumn{1}{|c|}{Core-i7 8650U}   & 4               & 8                 & \begin{tabular}[c]{@{}c@{}}8Gb \\ DDR4\end{tabular} & SSD       \\ \hline
-\multicolumn{1}{|c|}{4x Opteron 6376} & 32              & 64                & \begin{tabular}[c]{@{}c@{}}252Gb\\ DDR3\end{tabular}   & HDD       \\ \hline
+\multicolumn{1}{|c|}{Core-i7 8650U}   & 4               & 8                 & \begin{tabular}[c]{@{}c@{}}8Gb\end{tabular} & SSD       \\ \hline
+\multicolumn{1}{|c|}{4x Opteron 6376} & 32              & 64                & \begin{tabular}[c]{@{}c@{}}252Gb\end{tabular}   & HDD       \\ \hline
 \end{tabular}
 \caption{Machine specification of tests}
 \label{table:machines}
@@ -739,17 +771,15 @@ $3.32\times$, $3.53\times$ on \textit{gimple-match.c} and
 \textit{insn-emit.c} by using 64 jobs. This is close to the
 maximum theoretical speedup of $4\times$ computed by
 \cite{bernardino2020improving} when parallelizing the
-Intraprocedural Optimizations.
+intraprocedural optimizations.
 
 We will now discuss how these changes impacts the overall compilation
 time of some projects. For this, we run experiments compiling
 the Linux Kernel 5.19.6, Git 2.30.0, the GCC version mentioned in
 Section \ref{sec:methods} with and without bootstrap enabled, and JSON C++, with
-commit hash \texttt{01f6b2e7418537}. We have also compiled GCC and
-Git with the jobserver integration enabled, and the reason because
-we did not enabled it in other projects is because it is necessary
-to modify a absolutely large number of Makefiles (for instance, Linux
-has 2597 Makefiles). 
+commit hash \texttt{01f6b2e7418537}. We have only enabled jobserver integration
+in GCC and Git, because it is necessary to modify an absolute large number
+of Makefiles to do so (for instance, Linux has 2597 Makefiles). 
 
 \begin{figure}
 \centering
@@ -787,7 +817,7 @@ speedup when compiling entire projects in manycore machines. However,
 There are several points in which our work can be improved.
 
 First, is by fixing the problems reported in Section \ref{sec:methods}. These bugs
-certainly prevents the current branch to be used in industrial environments (which is a
+certainly prevents the current branch from being used in industrial environments (which is a
 good reason why this was not merged in upstream yet), but they are fine as a
 proof of concept to support our claims.
 
@@ -800,18 +830,21 @@ SPEC language. Current implementation only checks if launching program
 is a known compier/assembler/linker, and will get confused in languages that
 needs additional steps (such as CUDA).
 
-And forth, try to develop a predictive model to decide if the input file is
+Forth, try to develop a predictive model to decide if the input file is
 a good candidate for parallel compilation. Fig. \ref{fig:gcc_all_files} shows
 a clear linear correlation between the expected number of instructions and time
 (and maybe it is the best parameter), but it may be possible to (statically)
 collect more information about the file for a better decision.
 
+And fifth, try to avoid partial linking and symbol promotion altogether
+by concatenating the generated assembler files, instead of linking every
+generated assembler file into temporary object files.
+
 We also would like to draw attention to LTO's WPA step, which still runs
-sequentially. Parallelizing this step, which includes all interprocedural
-optimization passes would improve parallel compilation of projects across the
-board in both LTO mode and in our work. Profiling shows us that $11\%$ of the
-compilation time is spent in this mode, while our project parallelized $75\%$
-of the compiler.
+sequentially. Parallelizing this step, which includes all IPA passes would
+improve parallel compilation of projects across the board in both LTO mode and
+in our work. Profiling shows us that $11\%$ of the compilation time is spent in
+this mode, while our project parallelized $75\%$ of the compiler.
 
 %
 % ---- Bibliography ----
