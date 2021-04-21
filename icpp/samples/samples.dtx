@@ -1,82 +1,213 @@
-% This is samplepaper.tex, a sample chapter demonstrating the
-% LLNCS macro package for Springer Computer Science proceedings;
-% Version 2.20 of 2017/10/04
+%<*manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+%% 
+%% The first command in your LaTeX source must be the \documentclass command.
+%<manuscript>\documentclass[manuscript,screen,review]{acmart}
+%<acmsmall|acmsmall-conf>\documentclass[acmsmall]{acmart}
+%<acmsmall-submission>\documentclass[acmsmall,screen,review]{acmart}
+%<acmlarge>\documentclass[acmlarge]{acmart}
+%<acmtog>\documentclass[acmtog]{acmart}
+%<sigconf>\documentclass[sigconf]{acmart}
+%<authordraft>\documentclass[sigconf,authordraft]{acmart}
+%<sigplan>\documentclass[sigplan,screen]{acmart}
+%<sigchi>\documentclass[sigchi]{acmart}
+%<sigchi-a>\documentclass[sigchi-a, nonacm]{acmart}
+
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
 %
-\documentclass[runningheads]{llncs}
-%
+\setcopyright{acmcopyright}
+\copyrightyear{2018}
+\acmYear{2018}
+\acmDOI{10.1145/1122445.1122456}
+
+%</manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+%<*manuscript|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+%% These commands are for a PROCEEDINGS abstract or paper.
+\acmConference[ICPP '21]{ICPP '21: 50th International Conference on Parallel Processing}{August 09--12, 2021}{Chicago, IL} 
+\acmBooktitle{ICPP '21: 50th International Conference on Parallel Processing,
+  August 09--12, 2021} 
+\acmPrice{15.00}
+\acmISBN{978-1-4503-XXXX-X/18/06}
+%</manuscript|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+
+%<*acmsmall|acmsmall-submission|acmlarge|acmtog>
+%%
+%% These commands are for a JOURNAL article.
+%<acmsmall|acmsmall-submission>\acmJournal{JACM}
+%<acmlarge>\acmJournal{POMACS}
+%<acmtog>\acmJournal{TOG}
+\acmVolume{37}
+\acmNumber{4}
+\acmArticle{111}
+\acmMonth{8}
+%</acmsmall|acmsmall-submission|acmlarge|acmtog>
+%<*manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+
+
+%%
+%% Submission ID. 
+%% Use this when submitting an article to a sponsored event. You'll
+%% receive a unique submission ID from the organizers
+%% of the event, and this ID should be used as the parameter to this command.
+%%\acmSubmissionID{123-A56-BU3}
+
+
+%%
+%% The majority of ACM publications use numbered citations and
+%% references.  The command \citestyle{authoryear} switches to the
+%% "author year" style.
+%%
+%% If you are preparing content for an event
+%% sponsored by ACM SIGGRAPH, you must use the "author year" style of
+%% citations and references.
+%<!acmtog>%% Uncommenting 
+%<!acmtog>%% the next command will enable that style.
+%<!acmtog>%%\citestyle{acmauthoryear}
+%<acmtog>\citestyle{acmauthoryear}
+
 \usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{rotating}
-\usepackage[pdftex,
-            pdfauthor={Giuliano Belinassi, Richard Biener, Jan Hubicka and Alfredo Goldman},
-            pdftitle={Compiling Files in Parallel: A Study with GCC},
-            pdfsubject={Compiling in Parallel},
-            pdfkeywords={Compilers, Parallel Compilation, Link Time Optimization, LTO},
-            pdfproducer={LaTeX},
-            pdfcreator={pdfTeX 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian)}]{hyperref}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 
 \usetikzlibrary{decorations.pathreplacing,shapes,arrows,positioning}
-% Used for displaying a sample figure. If possible, figure files should
-% be included in EPS format.
-%
-% If you use the hyperref package, please uncomment the following line
-% to display URLs in blue roman font according to Springer's eBook style:
-\renewcommand\UrlFont{\color{blue}\rmfamily}
 
-
-
+%%
+%% end of the preamble, start of the body of the document source.
 \begin{document}
-\bibliographystyle{plainurl}
 
-%
-\title{Compiling Files in Parallel: A Study with GCC\thanks{Supported by CAPES and Google Summer of Code.}}
-%
-%\titlerunning{Abbreviated paper title}
-% If the paper title is too long for the running head, you can set
-% an abbreviated paper title here
-%
-\author{Giuliano Belinassi\inst{1} \and Richard Biener\inst{2} \and Jan Hubi\v cka \inst{3} \and Alfredo Goldman\inst{1}}
-%
-\authorrunning{G. Belinassi et al.}
-% First names are abbreviated in the running head.
-% If there are more than two authors, 'et al.' is used.
-%
-\institute{Institute of Mathematics and Statistics, Rua do Matão 1010, São Paulo SP, BRA\\
-\url{https://www.ime.usp.br} \and
-SUSE Labs, Nürnberg 90409, GER\\
-\url{https://www.suse.com/} \and
-Charles University, Malostransk én ám. 25. 11800 Praha, CZE\\
-\url{http://kam.mff.cuni.cz/}}
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title{Compiling Files in Parallel: A Study with GCC}
 
-%
-\maketitle              % typeset the header of the contribution
-%
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+%% Of note is the shared affiliation of the first two authors, and the
+%% "authornote" and "authornotemark" commands 
+%% used to denote shared contribution to the research.
+\author{Giuliano Belianssi}
+\email{giuliano.belinassi@usp.br}
+\orcid{1234-5678-9012}
+\author{Alfredo Goldman}
+\email{gold@ime.usp.br}
+\affiliation{%
+  \institution{Institute of Mathematics and Statistics}
+  \streetaddress{Rua do Matão, 1010}
+  \city{São Paulo}
+  \state{São Paulo}
+  \country{Brazil}
+  \postcode{05508-060}
+}
+
+\author{Richard Biener}
+\affiliation{%
+  \institution{SUSE Labs}
+  \streetaddress{Nürnberg 90409}
+  \city{Nürnberg}
+  \country{Germany}}
+\email{rguenther@suse.de}
+
+\author{Jan Hubi\v cka}
+\affiliation{%
+  \institution{Charles University}
+  \streetaddress{CMalostransk én ám. 25}
+  \city{Praha}
+  \country{Czech Republic}}
+\email{hubicka@ucw.cz}
+
+
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap 
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list 
+%% of authors' names for this purpose.
+\renewcommand{\shortauthors}{Belinassi et al.}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article. 
 \begin{abstract}
-
 Processors are becoming increasingly parallel, but compiling software has so
-far been a task parallelizable only by the number of files in it. To improve
-compilation parallelism granularity, we propose a method feasible to implement
-in commercial compilers for single file parallel compilation, with simple
+far been a task parallelizable only by per file granularity. To improve
+this, we propose a method feasible to implement
+in commercial compilers for parallel single file compilation, using simple
 modifications in the Link Time Optimization (LTO) engine; which we show by
-implementing it in GCC. This method resulted in a 35\% speedup when
-self-compiling GCC when compared to \texttt{make -j} only parallelism, and
-up to $3.5\times$ speedup when compiling individual files. 
+implementing a custom partitioner in GCC. This method resulted in a 35\% speedup when
+self-compiling GCC when compared to \texttt{make -j} only parallelism, and speedups
+ranging from $0.7\times$ to $3.5\times$ when compiling individual files. 
 We also explain why the adoption of our proposed method is still compatible
 with the Reproducible Builds project.
-
-\keywords{Compilers \and Parallel Compilation \and Link Time Optimization \and LTO.}
 \end{abstract}
-%
-%
-%
+
+%%
+%% The code below is generated by the tool at http://dl.acm.org/ccs.cfm.
+%% Please copy and paste the code instead of the example below.
+%%
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011041</concept_id>
+<concept_desc>Software and its engineering~Compilers</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010147.10010169.10010170</concept_id>
+<concept_desc>Computing methodologies~Parallel algorithms</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its Engineering~Compilers}
+\ccsdesc[300]{Computer methodologies~Parallel algorithms}
+
+%%
+%% Keywords. The author(s) should pick words that accurately describe
+%% the work being presented. Separate the keywords with commas.
+\keywords{Compilers, Parallel Compilation, Link Time Optimization, LTO, GCC}
+
+%</manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+%<*sigconf|authordraft|sigplan|acmsmall-conf>
+%% A "teaser" image appears between the author and affiliation
+%% information and the body of the document, and typically spans the
+%% page.
+%%\begin{teaserfigure}
+%%  \includegraphics[width=\textwidth]{sampleteaser}
+%%  \caption{Seattle Mariners at Spring Training, 2010.}
+%%  \Description{Enjoying the baseball game from the third-base
+%%  seats. Ichiro Suzuki preparing to bat.} 
+%%  \label{fig:teaser}
+%%\end{teaserfigure}
+%</sigconf|authordraft|sigplan|acmsmall-conf>
+%<*manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
+
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
+\maketitle
+
 \section{Introduction}
 
 The recent advances in both technological and computational fields induced an
 increasingly faster expansion of software ecosystems. Developers create new
-programs to supply the needs of the most diverse domains, either through web
-systems coded in script languages; or by components to an operating system
-destined to control some hardware resources. Regardless of the reason behind
-the development of them, it is true that their code will be, at some
+programs to supply the needs of the most diverse domains by coding new websites
+in scripting languages, creating standalone desktop applications, adding new
+functionalities to an operating system, and so on. Regardless of the reason
+behind the development of them, it is true that their code will be, at some
 point, transformed into machine language by a compiler or assembler, even if an
 interpreter executes it.
 
@@ -88,7 +219,7 @@ to develop and improve them, such as the GNU Compiler Collections
 of translating several languages such as C, C++, and Fortran, to machine language.
 
 GCC was started by Richard Stallman, with the first public release in March of
-1987, supporting the C language and targeting several architectures
+1987, supporting only the C language and targeting several architectures
 \cite{gcc-first-ver}. Today, GCC is a multinational collaboration
 project, with hundreds of thousands of lines of code, and perhaps the most used C/C++
 compiler in the Linux ecosystem.
@@ -109,19 +240,23 @@ Interprocedural Analysis (IPA) has been decided, and we proceed compiling
 each partition individually, in parallel. IPA includes only interprocedural
 optimizations, which requires interactions among distinct functions to optimize
 (\emph{e.g.} inliner). There is already a way to instruct
-the LTO engine to partition a single file TU by using
-\texttt{-flto -flinker-output=nolto-rel}, but with phony object creation
+the LTO engine to partition a single file TU by using the flags
+\texttt{-flto } \texttt{-flinker-output=nolto-rel}, but with phony object creation
 overhead and no guarantee of correct name clash resolution, as discussed
 in Section \ref{sec:name_clash_resolution}.
 
-We present the previous efforts in compiling a single file in
-parallel, as well as an introduction to LTO in Section \ref{sec:related}.
-Then, we detail our work in single file compilation in
-Section \ref{sec:work}, while exposing some internal mechanisms
-of GCC. We then show how we ensured that our modifications are correct
-in Section \ref{sec:methods}. Finally, we present our results in
-Section \ref{sec:results} and discuss how to improve from this paper
-in Section \ref{sec:future_works}.
+We present the previous efforts in compiling a single file in parallel, as well
+as an introduction to LTO in Section \ref{sec:related}.  Then, discuss the idea
+that motivated the development of this feature on Section \ref{sec:profiling},
+reproducing previous profiling experiments on GCC and computing an
+approximation about the best speedup archivable by our methods; to finally
+present our proposal on section Section \ref{sec:work}, as well as presenting
+some internal details of GCC. We then show how we ensured that our
+modifications are correct in Section \ref{sec:methods}; and finally, we present
+our results in Section \ref{sec:results} with a discussion about our findings and
+observations when running the experiments. In the end, we discuss how to improve
+from this paper in Section \ref{sec:future_works}.
+
 
 \section{Related Works} \label{sec:related}
 
@@ -158,7 +293,7 @@ Still on Packrat methods, Dubroy and Warth \cite{dubroy2017incremental} show
 how to implement an incremental Pacrkat to avoids reparsing the entire input
 on modifications. The authors achieve this by recording all its
 intermediate results in a parsing table and modify the parsing program to reload
-this table when invoked. The authors showed that their method does not require
+this table when invoked. They further showed that their method does not require
 any modification to the original grammar, and their method requires only
 up to $11.7\%$ of extra memory when compared to the original parser. Authors
 claim a reduction from $23.7ms$ to $6.2ms$ on reparsing a 279Kb input string.
@@ -192,47 +327,55 @@ vectorization). The authors managed a speedup of up to $3.35\times$ to this
 compilation stage, and up to $1.88\times$ in total compilation of a file when
 extending this technique to the RTL passes.
 
+Panchenko \textit{et.al.} \cite{panchenko2021lightning} presented Lightning
+BOLT, a compiler that reads already compiled binaries and outputs an optimized
+version of them. The authors present a list of passes in which Lightning BOLT
+runs in parallel and briefly explain how they parallelized them. They include
+Control-Flow Graph Construction, Local Optimizations, Identical Code Folding,
+Frame optimizations, and Shrink Wrapping running in parallel. Speedups ranged
+up to $1.56\times$ when compared to the sequential version.
+
 \subsection{Link Time Optimization (LTO)} \label{lto_section}
 
 Compilation usually uses the following scheme: a compiler consumes a source file,
 generating an assembly file as output. This file is then assembled into an object file
 and later linked with the remaining objects file to compose an executable or a library.
-Fig. \ref{fig:gnu_toolchain} illustrates this process for a single file. In this paper,
+Figure \ref{fig:gnu_toolchain} illustrates this process for a single file. In this paper,
 we call this method the \emph{classical compilation} scheme.
 
 \begin{figure}
 \tikzstyle{block} = [rectangle, draw, fill=white,
-    text width=6em, text centered, rounded corners, node distance=4.7cm, auto, minimum height=3em]
+    text width=6em, text centered, rounded corners, node distance=4.5cm, auto, minimum height=3em]
 \tikzstyle{line} = [draw, -latex]
 \tikzstyle{cloud} = [draw, ellipse,fill=white, node distance=2cm,
     minimum height=2em]
-\makebox[\textwidth][c]{
+%\makebox[\textwidth][c]{
 \scalebox{0.8}{
-\begin{tikzpicture}[node distance = 3cm, auto]
+\begin{tikzpicture}[node distance = 1cm, auto]
     % Place nodes
     \node [block]                      (cc1) {Compiler \\ (cc1)};
     \node [block, right of = cc1]      (as) {Assembler\\(as)};
     \node [block, right of = as]       (ld) {Linker};
-    \coordinate [left of=cc1]          (fonte);
-    \coordinate [right of=ld]    (bin);
+    \coordinate [above= of cc1]          (fonte);
+    \coordinate [above= of ld]    (bin);
 
     % Draw edges
     \draw[->]    (cc1.east)    -- (as.west)       node[midway, above] {Assembler File};
     \draw[->]    (cc1.east)    -- (as.west)       node[midway, below] {(.s)};
     \draw[->]    (as.east)     -- (ld.west)       node[midway, above] {Object File};
     \draw[->]    (as.east)     -- (ld.west)       node[midway, below] {(.o)};
-    \draw[->]    (fonte.west)  -- (cc1.west)      node[pos=0, above] {Source File};
-    \draw[->]    (fonte.west)  -- (cc1.west)      node[pos=0, below] {(.c)};
-    \draw[->]    (ld.east)     -- (bin.west)      node[pos=1, above] {Executable};
+    \draw[->]    (fonte.south)  -- (cc1.north)      node[pos=0, above] {Source File};
+   %\draw[->]    (fonte.south)  -- (cc1.north)      node[pos=0, below] {(.c)};
+    \draw[->]    (ld.north)     -- (bin.south)      node[pos=1, above] {Executable};
 \end{tikzpicture}
 }
-}%
+%}%
 \caption{GCC Compiling a .c file in \emph{classical compilation} mode}
 \label{fig:gnu_toolchain}
 \end{figure}
 
 The issue around this scheme is that it can only optimize with
-the information found in its TU because it can not see the body
+the information found in its Translation Unit (TU) because it can not see the body
 content of other files' functions. A TU is the
 entire content of a source file (a .c file in C) plus all its headers.
 
@@ -259,7 +402,7 @@ WPA to each partition, which will generate its own object file. This stage runs 
 parallel.
 \end{itemize}
 
-This process is sketched in Fig. \ref{fig:whopr_build}, where the linker
+This process is sketched in Figure \ref{fig:whopr_build}, where the linker
 wrapper is represented by \textit{collect2}, which firstly launch \textit{lto1}
 in WPA mode, and the second time it finally launches \textit{ld}. This process
 can be seen by launching gcc with \texttt{-flto -v}.
@@ -268,7 +411,7 @@ can be seen by launching gcc with \texttt{-flto -v}.
 \tikzstyle{block} = [rectangle, draw, fill=white,
     text width=6em, text centered, rounded corners, node distance=1cm and 0.5cm, minimum height=2em]
 \tikzstyle{line} = [draw, -latex]
-\makebox[\textwidth][c]{
+%\makebox[\textwidth][c]{
 
 \scalebox{0.8}{
 \begin{tikzpicture}[node distance = 3cm, auto]
@@ -288,11 +431,12 @@ can be seen by launching gcc with \texttt{-flto -v}.
 
     \node [block, below= of objeto2]       (gcc_lto) {collect2 (lto1)};
 
-    \node [block, right= of fonte3]            (gcc_ltrans1) {gcc\_ltrans};
-    \node [block, right= of gcc_ltrans1]   (gcc_ltrans2) {gcc\_ltrans};
+    \node [block, below= of gcc_lto]       (gcc_wpa) {gcc\_wpa};
+
+    \node [block, below= of gcc_wpa]   (gcc_ltrans2) {gcc\_ltrans};
+    \node [block, left= of gcc_ltrans2]            (gcc_ltrans1) {gcc\_ltrans};
     \node [block, right= of gcc_ltrans2]   (gcc_ltrans3) {gcc\_ltrans};
 
-    \node [block, above= of gcc_ltrans2]       (gcc_wpa) {gcc\_wpa};
     \coordinate[below= of gcc_wpa]            (c2);
 
 
@@ -321,8 +465,8 @@ can be seen by launching gcc with \texttt{-flto -v}.
     \draw[->]    (objeto2.south)   -- (gcc_lto.north);
     \draw[->]    (objeto3.south)   -- ([xshift=+0.7em]gcc_lto.north);
 
-    %\draw[->]    (gcc_lto.south)   -- (gcc_wpa.north);
- 	\draw[->]  (gcc_lto.east) .. controls +(6.5,0) and +(-6.5,0).. (gcc_wpa.west);
+    \draw[->]    (gcc_lto.south)   -- (gcc_wpa.north);
+ 	%\draw[->]  (gcc_lto.east) .. controls +(6.5,0) and +(-6.5,0).. (gcc_wpa.west);
 
     \draw[->]    (gcc_wpa.south)   -- (gcc_ltrans1.north);
     \draw[->]    (gcc_wpa.south)   -- (gcc_ltrans2.north);
@@ -355,7 +499,7 @@ can be seen by launching gcc with \texttt{-flto -v}.
 
 \end{tikzpicture}
 }
-}%
+%}%
 \caption{Compilation of a program using LTO scheme}
 \label{fig:whopr_build}
 \end{figure}
@@ -377,18 +521,68 @@ function to avoid recompilation of unmodified functions, while LTO requires
 recompilation of the entire partition. Most GCC's IPA
 optimizations only use summaries to avoid this memory footprint issue.
 
+\section{Inspiration and Profiling}\label{sec:profiling}
+
+On a previous attempt to parallelize GCC, Bernardino \textit{et.  al.}
+\cite{bernardino2020improving} presented a profiling report of how much time
+the compiler is consuming on each stage.  We used the \texttt{-ftime-report}
+from GCC and compile the file named \texttt{gimple-match.c} to reproduce the
+profiling report that the authors used in their experiments, which we show on
+Figure \ref{fig:gcc_profiling}.
+
+Another way of doing this profiling process would be using an automated
+profiling tool like
+\texttt{gprof}\footnote{https://sourceware.org/binutils/docs/gprof/} or
+\texttt{perf}\cite{de2010new} and identifying the role of the labeled function
+in the program, but we chose not to use them once GCC had this autoprofiling
+functionality already implemented.
+
+\begin{figure}
+\centering
+	 \includegraphics[scale=0.6]{figuras/profiling-crop.pdf}
+	  \caption{Profiling GCC with \texttt{gimple-match.c}}
+	  \label{fig:gcc_profiling}
+\end{figure}
+
+In GCC, all Intraprocedural Analysis are executed after IPA. When LTO is
+enabled, that analysis is done in the LGEN stage, which already runs in
+parallel when LTO is activated \cite{glek2010optimizing}. This inspired us to
+transplant the LTO partitioner for per-file classical compilation instead of
+threading the compiler, which would result in a faster development process.
+
+Therefore, the main idea is to partition the TU into multiple partitions, and
+compile them separately \textit{after} the Interprocedural Optimizations were
+decided. Once each partition is compiled, we merge the compiled code into a
+single object file, maintaining compatibility with the original build tools.
+
+\subsection{Theoretical Maximum Speedup}
+
+On Figure \ref{fig:gcc_profiling}, the compilation of \texttt{gimple-match.c}
+takes $87s$, where $79\%$ is spent on Intraprocedural Optimizations, consuming
+an relevant slice of the compilation time. If we assume that we can parallelize
+this part with linear speedup, and round up the time taken in the
+Intraprocedural part to $80\%$ (which is $\frac{4}{5}$), then we can calculate
+the parallel time $T_p$ with $p$ processors as:
+
+$$ T_p = \frac{1}{5} T_1 + \frac{4}{5p}T_1 = \frac{1}{5} \left( 1 + \frac{4}{p}
+\right)T_1 $$
+where $T_1$ is the serial time we measured. By the definition of speedup,
+the maximum speedup archivable in the compiler is:
+
+$$\lim_{p \rightarrow +\infty} \frac{T_1}{T_p} = \lim_{p \rightarrow +\infty}
+\frac{T_1}{\frac{1}{5} \left( 1 + \frac{4}{p} \right)T_1} = \lim_{p \rightarrow
++\infty} \frac{5}{1 + \frac{4}{p}} = 5$$
+
+Therefore, if we devise an mechanism to parallelize every Intraprocedural
+Optimization, we can archive up to $5\times$ speedup when compiling individual
+files.
 
 \section{Our Proposal} \label{sec:work}
 
-As presented in Section \ref{lto_section}, LTO was created to allow
-cross-module optimizations in programs, and has a serial part (WPA), imposing a
-compilation bottleneck on manycore machines. On the other hand, \emph{classical compilation}
-scheme can not partition its TU for parallel
-compilation, which can also be a bottleneck for the compilation if it is too large.
-The latter issue, however, can be solved by transplanting the LTO partitioner
-to the \emph{classical compilation} scheme and making it work \textit{without}
-having the context of the \textit{entire} program. We show that this transplant
-it is possible by implementing it in GCC.
+We propose a modification in the LTO engine to make it work \textit{without}
+having the context of the \textit{entire} program. Once this   is done, we can
+use the LTO partitioner engine to partition the file and compile then in
+parallel, similarly to LTO.
 
 Our approach differs from LTO mainly in how we handle the IPA.
 LTO handles these optimizations with the context of the whole program, while
@@ -399,8 +593,9 @@ available in the LTO's LTRANS stage.
 
 In this section, we will first discuss the internals of some parts of GCC,
 which we had to modify for our implementation to work. In Subsection
-\ref{sec:gcc_driver}, we present an important piece of the compiler from the
-User Experience perspective: the \texttt{gcc} \textit{driver}. Then, in
+\ref{sec:gcc_driver}, we present how we modified the GCC driver to reconstruct
+the output object file, required for maintaining compatibility building tools
+such as Make. Then, in
 Subsection \ref{sec:lto_partitioner} we present a short algorithm for making
 the LTO partitioner work for our proposal. In Subsection
 \ref{sec:partition_mask} we present a necessary change we had to do in our work
@@ -424,7 +619,7 @@ not tasks of the compiler. However, the user can launch \texttt{gcc -o binary
 file.c} and get a working binary. That is because the binary \texttt{gcc} is
 a \textit{driver}, and it will launch the
 necessary programs for the user. In fact, this line launches three programs,
-as illustrated in Fig. \ref{fig:gnu_toolchain}.
+as illustrated in Figure \ref{fig:gnu_toolchain}.
 
 Therefore, if we want our changes do not break the building scripts
 (\textit{e.g.}, Makefile) used by most projects -- which is mostly launching
@@ -447,22 +642,22 @@ for merging objects file into one. Therefore, the solution to this problem is:
 
 	\item Patch the driver to pass this hidden flag to the
 	\textit{partitioner}, and also to check if this file exists. If not, this means
-	that either the compiler is incompatible or it has chosen not to partition
+	that (1) the compiler is incompatible or (2) it has chosen not to partition
 	the TU. In the first case, the driver should call the assembler to every
 	assembly file generated, and call the linker to generate the expected
 	final object file. In the second case, simply fallback to the previous
 	compilation logic.
 \end{enumerate}
 
-Fig. \ref{fig:gnu_toolchain_patched} illustrates the code flow after these
+Figure \ref{fig:gnu_toolchain_patched} illustrates the code flow after these
 changes.  The execution starts in the highlighted node \textit{gcc}, which
 calls the compiler (cc1) with the necessary flags to establish a communication
 channel among the parts. The compiler then will partition the TU and forks
 itself into several child processes, one for each partition.
 
 Once multiple processes are created, the compiler will communicate its output
-.s file, and the driver then will launch the assembler (\textit{as}) to
-generate several object files, and then launch the linker (\textit{ld}) to
+.s file, and the driver then launch the assembler (\textit{as}) to
+generate several object files, to finally launch the linker (\textit{ld}) to
 merge them all into a single object file.
 
 %After these changes, a good way to check if the changes are working is to
@@ -473,12 +668,12 @@ merge them all into a single object file.
 %some extreme cases, for instance, the C compiler being called to process macros
 %in files of distinct languages.
 
-\begin{figure}
+\begin{figure*}
 \tikzstyle{block} = [rectangle, draw, fill=white,
     text width=6em, text centered, rounded corners, minimum height=2em]
 \tikzstyle{line} = [draw, -latex]
 
-\makebox[\textwidth][c]{
+%\makebox[\textwidth][c]{
 \scalebox{0.8}{
 \begin{tikzpicture}[node distance = 2.4cm, auto]
     % Place nodes
@@ -518,11 +713,11 @@ merge them all into a single object file.
     \draw[->]    (ld.east)     -- (bin.west)      node[pos=1, above] {\texttt{file.o}};
 \end{tikzpicture}
 }
-}%
+%}%
 \caption{Interaction between the \textit{driver}, the \textit{compiler}, and other tools
 after our changes}
 \label{fig:gnu_toolchain_patched}
-\end{figure}
+\end{figure*}
 
 \subsection{Adapting the LTO Partitioner}\label{sec:lto_partitioner}
 
@@ -536,24 +731,96 @@ partitioning} problem.
 When LTO is enabled and GCC is in the WPA stage, the body of these nodes
 is not present, just a \textit{summary} of them (\textit{e.g.} the size
 in lines of code it had). This is done to save memory. However,
-when LTO is disabled, the function body is present, resulting
-in some assertion failures, which were fixed after some debugging.
+when LTO is disabled, the function body is present. Therefore,
+the LTO WPA engine must be further patched to expect that the function
+body is present when analyzing the program. 
 
 Then comes the partitioner algorithm \textit{de facto}. In LTO, GCC tries to
-create partitions of similar size, and always try to keep nodes together. The
-heuristic used by the original partitioner runs in linear time, and because of
-that its code is quite complex. This resulted in a difficult process of finding
-and solving the issues causing a partitioning failure, and therefore, we
-decided to design a new partitioning algorithm for this project.
+create partitions of similar size, and always try to keep adjacent nodes together.
+However, we devised an partitioning algorithm for our tests which only keeps
+together nodes which are \textit{required} to be in the same partition. Therefore,
+we do not focus on partition balance, although we did implement a very simple
+partition merging logic for some balance.
 
-This partitioning algorithm works as follows: for each node, we check if it
-is a member of a COMDAT \cite{comdat} group, and
-merged it into the same partition. We then propagate outside of this COMDAT group;
-checking for every node that may trigger the COMDAT to be copied into other
-partitions and group them into the same partition. In practice,
-this means to include every node hit by a Depth-First
-Search (DFS) from the group to a non-cloned node outside of the group.
-Fig. \ref{fig:comdat_frontier} represents a sketch of this process.
+This partitioning algorithm works as follows: for each node, we check if it is
+a member of a COMDAT \cite{comdat} group, and merged it into the same
+partition. We then propagate outside of this COMDAT group; checking for every
+node that may trigger the COMDAT to be copied into other partitions and group
+them into the same partition. In practice, this means to include every node hit
+by a Depth-First Search (DFS) from the group to a non-cloned node outside of
+the group.  Algorithm \ref{alg:comdat} presents a pseudocode of this process.
+Most of this process is already present from the COMDAT dependency algorithm
+from LTO.  We added the logic to expand the partition side if a duplicated
+symbol is encountered, adding further non-duplicated symbols in to
+the boundary, as we illustrate in Figure \ref{fig:comdat_frontier}. Notice how
+$v_{16}$ is not added to the frontier, as is called by $v_{14}$, the symbol marked
+as duplicated.
+
+\begin{algorithm*}
+\caption{Partition the callgraph into multiple partitions for parallel compilation}
+\begin{algorithmic}
+\State{Partitions $ds$} \Comment{Hold partitions. Can be implemented with Union-Find.}
+\Procedure{lto\_merge\_comdat\_map}{Callgraph $G$} \Comment{To be called by the LTO partitioner.}
+	\State{Initialize $ds$} \Comment{Initialize one partition per node. Partitions will be constructed by merging other partitions.}
+	\For{each symbol of $G$ \textbf{as} $v$}
+		\If{$v$ belongs to a COMDAT group}
+			\State{merge\_comdat\_nodes($v$, partition of $v$)}
+		\EndIf
+		\State{merge\_contained\_symbols($v$, partition of $v$)}
+	\EndFor
+	\State{balance the partitions in $ds$}
+	\State{build LTRANS partitions object \textbf{from} $ds$}
+\EndProcedure
+
+\Procedure{merge\_comdat\_nodes}{node $v$, Partition $set$} \Comment{Merge the COMDAT group and its frontier.}
+	\If{$v$ is marked}
+		\Return
+	\EndIf
+	\State{mark $v$}
+	\If{$v$ belongs to a COMDAT group}
+		\For{every node in the same COMDAT group of $v$ \textbf{as} $w$}
+			\State{unite partition of $w$ with partition $set$}
+			\State{merge\_comdat\_nodes($w$, $set$)}
+		\EndFor
+	\EndIf
+	\If{$v$ belongs to a COMDAT group \textbf{or} $v$ is a duplicated symbol}
+	\State{}
+	\Comment{If $v$ is duplicated and not member of COMDAT group, we need to reach to an non-duplicated symbol to add to the frontier.}
+		\If{$v$ is a function}
+			\For{every caller of $v$ \textbf{as} $u$}
+				\If{calledge $(u, v)$ is inlined \textbf{or} $v$ is a duplicated symbol} \Comment{Same as above.}
+					\State{unite partition of $u$ with partition $set$}
+					\State{merge\_comdat\_nodes($u$, $set$)}
+				\EndIf
+			\EndFor
+% TODO: This is a little different than what is implemented. Check if this is
+% really correct.
+\Comment{thunk functions adjust their object \texttt{this} pointer before calling the function}
+			\If{$v$ is a thunk function \textbf{and} $v$ is not inlined anywhere}
+				\For{every callee of $v$ \textbf{as} $w$}
+					\State{unite partition of $u$ with partition $set$}
+					\State{merge\_comdat\_nodes($u$, $set$)}
+				\EndFor
+			\EndIf
+		\EndIf
+		\Comment{Look at all nodes refering $v$, and add them to the COMDAT partition as well}
+		\For{every node referring $v$ \textbf{as} $u$}
+			\State{unite partition of $u$ with partition $set$}
+			\State{merge\_comdat\_nodes($u$, $set$)}
+			\If{$u$ is a duplicated symbol} \Comment{If $v$ is a duplicated symbol, we must reach an non-duplicated symbol for the frontier}
+				merge\_comdat\_nodes($u$, $set$)
+			\EndIf
+		\EndFor
+	\EndIf
+\EndProcedure
+\Procedure{merge\_contained\_symbols}{node $v$, Partition $set$}
+	\For{every node contained in $v$ \textbf{as} $u$}
+		\State{unite partition of $u$ with partition $set$}
+	\EndFor
+\EndProcedure
+\end{algorithmic}
+  \label{alg:comdat}
+\end{algorithm*}
 
 \begin{figure}
 \centering
@@ -584,9 +851,12 @@ in LTO and we could reuse them. However, some issues were found
 when handling inline functions and global variables marked as part
 of the boundary. First, some functions marked to be inlined into 
 functions inside the partition were incorrectly marked to be removed.
+We fixed that by checking if a marked to be removed function is inlined
+into a function inside the boundary.
 Second, being variables marked as in the boundary (and therefore
-not in the partition) not being correctly promoted to external. The reason
-for these issues was hard to find the reason of, but easy to fix.
+not in the partition) not being correctly promoted to external.
+We further fix that by checking if there are references to that variable
+through other partition, and in this case we promote them to global.
 
 Furthermore, there were some issues concerning how GCC handles
 partitions, which we discuss in the next subsection.
@@ -622,9 +892,11 @@ communication file, which the driver will read in the future. The partition
 number is important to guarantee that the build is reproducible, as we will
 discuss later.
 
-It is also important that some early step in the compiler does not emit assembly
-too early, such as the issue with the gimplifier in GCC, or else the output
-file will be incomplete. We had to fix the gimplifier to avoid that.
+It is also important that some early step in the compiler does not emit
+assembly too early, such as were the case of the gimplifier in GCC, or else the
+output file will be incomplete. These cases could be easily detected by using
+an breakpoint and flushing the assembler output file before retargeting the new
+assembler output file.
 
 Once the partition is applied to the child process, and the output file has
 been communicated to the driver, it can continue with the compilation. It
@@ -715,20 +987,26 @@ found. These tests were done with 2, 4, 8 and 64 parallel jobs, with minimum
 partitioning quota of $10^3$ and $10^5$ instructions.
 
 For the time measurements, all points represent the average of collected
-samples, with errorbar representing a $95\%$ confidence interval.
-Our test files consisted of preprocessed source files from GCC, which compiles
-without external includes. We collected $n = 15$ samples for every one of these
-files. For the projects, we collected $n = 5$ samples because compilation is a
-computer intensive task. We made sure that in every test, \texttt{-g0} was passed
-for fairness, once there is a bug in our branch regarding debug symbols of
-nodes in other partitions.
+samples, with errorbar representing a $95\%$ confidence interval.  Our test
+files consisted of preprocessed source files from GCC, which compiles without
+external includes. We collected $n = 15$ samples for every one of these files.
+For the projects, we collected $n = 5$ samples because compilation is a
+computer intensive task. We made sure that in every test, \texttt{-g0} was
+passed for fairness, once in the current state we do not eliminate debug
+symbols that are assigned to other partitions, which if enabled imposes an
+unfair overhead that does not exist on the sequential version.
 
 Tests were mainly executed in two computers, which are represented
 in Table \ref{table:machines}. The graphic caption specifies where the test
 was run.
 
-The version of GCC used in the tests is available in the \texttt{autopar\_europar\_2021}
-branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{e2da2f7205}.
+For the tests regarding the compilation of entire projects, we used the Opteron
+machine with make -j64 as the baseline and then enabling 8 internal threads in
+the compiler. We then enabled the jobserver integration feature and let it use
+how many threads as GNU Make allowed.
+
+The version of GCC used in the tests is available in the \texttt{icpp2021}
+branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{450b006f3}.
 
 %We ensure the correctness of our changes by:
 %\begin{enumerate}
@@ -751,7 +1029,7 @@ branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{e2da2f7205}.
 \centering
 \begin{tabular}{c|c|c|c|c|}
 \cline{2-5}
-                                      & Number of Cores & Number of Threads & RAM                                                    & Storage Device \\ \hline
+                                      & No. Cores & No. Threads & RAM                                                    & Storage Dev. \\ \hline
 \multicolumn{1}{|c|}{Core-i7 8650U}   & 4               & 8                 & \begin{tabular}[c]{@{}c@{}}8Gb\end{tabular} & SSD       \\ \hline
 \multicolumn{1}{|c|}{4x Opteron 6376} & 32              & 64                & \begin{tabular}[c]{@{}c@{}}252Gb\end{tabular}   & HDD       \\ \hline
 \end{tabular}
@@ -759,141 +1037,209 @@ branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{e2da2f7205}.
 \label{table:machines}
 \end{table}
 
-\vspace*{-1cm}
-
 \section{Results}\label{sec:results}
 
-We first highlight our best results in Table \ref{table:files}. On this table,
-the autogenerated column means that this file is compiled to C++, and then compiled
-into assembly by GCC. We managed speedups of up to a $2.4\times$ on Core-i7 when
-compiling individual files with 8 threads, and up to $3.53\times$ on Opteron 6376 when
-with 64 threads. Fig. \ref{fig:gcc_all_files} shows the results
-of all files in GCC. Here we can see that for files with $\textit{Number of Instructions} >
-1 \times 10^5$, we have mostly significant improvements.
+We first highlight some of our results in Table \ref{table:files}. On this
+table, the autogenerated column means that this file is compiled to C++, and
+then compiled into assembly by GCC. Furthermore, Figure
+\ref{fig:gcc_all_files} shows the timings and speedups of compiling files with
+Number of Instructions (insns) > $5\times 10^4$. We used the insns as a metric
+instead of Lines of Code (LoC) as it better captures template-heavy code that
+has to generate multiple functions for each argument type of the template from
+the same input. In this figure, we can see that for large files, we mostly got
+speedups in general. We managed speedups of up to a $2.4\times$ on Core-i7 when
+compiling individual files with 8 threads, and up to $3.53\times$ on Opteron
+6376 when with 64 threads. These speedup results is reasonably distant than
+the linear optimal ($4.4$ if $p = 32$), so these results could be further improved.
+
+We also notice that there is a file with $0.7\times$ speedup
+(\textit{i.e}., a slowdown) named \texttt{brig-lang.c}. The reason for that is
+the existence of a massive blob function that is appended to that file during
+the compilation process (47261 insns, while the file itself has 55927 insns).
+This was not observed in the remaining files. Since we partition the file by
+functions and global variables, and this function consumes practically the
+entirety of compilation time, we were not able to extract any meaningful
+parallelism from this file.
+
+%\begin{figure}
+%\centering
+%\includegraphics[scale=0.4]{figuras/times-speedup-crop.pdf}
+%\caption{Speedups of selected files with 1, 2, 4 and 8 threads on Core-i7}
+%\label{fig:gcc_speedups}
+%\end{figure}
+%
+%\begin{figure}
+%\centering
+%	 \includegraphics[scale=0.4]{figuras/times-insns-crop.pdf}
+%	  \caption{Compilation of each file with 1, 2, 4, and 8 threads on
+%	  Core-i7}
+%	  \label{fig:gcc_all_files}
+%\end{figure}
+
+\begin{figure*}
+\begin{minipage}[b]{0.5\textwidth}
+\includegraphics[scale=0.4]{figuras/times-insns-crop.pdf}
+%\subcaption{A subfigure}
+\end{minipage}%
+\begin{minipage}[b]{0.5\textwidth}
+\includegraphics[scale=0.4]{figuras/times-speedup-crop.pdf}
+%\subcaption{Another subfigure}
+\end{minipage}%
+\caption{Times and Speedups of selected files with 1, 2, 4 and 8 threads on Core-i7}
+\label{fig:gcc_all_files}
+\end{figure*}
 
 We will now discuss how our proposed changes impact the overall compilation
-time of some projects. For this, we run experiments compiling
-the Linux Kernel 5.19.6, Git 2.30.0, the GCC version mentioned in
-Section \ref{sec:methods} with and without bootstrap enabled, and JSON C++, with
-commit hash \texttt{01f6b2e7418537}. We have only enabled jobserver integration
-in GCC and Git, because it is necessary to modify an absolute large number
-of Makefiles to do so (for instance, Linux has 2597 Makefiles).
+time of some projects. For this, we run experiments compiling the Linux Kernel
+5.8-rc6, Git 2.30.0, the GCC version mentioned in Section \ref{sec:methods}
+with and without bootstrap enabled, and JSON C++, with commit hash
+\texttt{01f6b2e7418537}. We selected those projects as they are very often used
+on the Open Source community.  We have only enabled jobserver integration in
+GCC and Git, because it is necessary to modify an absolute large number of
+Makefiles for that (for instance, Linux has 2597 Makefiles).
 
-In Fig. \ref{fig:gcc_projects} we show our results. We can observe a near
-$35\%$ improvement when compiling GCC with bootstrap disabled, $25\%$ when
-bootstrap is enabled, and $15\%$ improvement when compiling Git compared to
-\texttt{make -j64} alone. Our jobserver implementation also squeezed a small
-improvement in GCC compilation, but showed a massive slowdown in Git. This is
-because Jobserver integration has interprocess communication cost
-with Make, which is a problem if the size of the partitions is small.  These
-tests were executed with 64 Makefile jobs and 8 threads inside the compiler.
-Other than this, we seen no significant speedup or slowdown in these other
-projects.
+In Figure \ref{fig:gcc_projects} we show our results. We ran this benchmark on a
+64-threaded Opteron machine instead of the Quad-Core i7 machine, once we find
+reasonable that our methodology would have better results on high core count
+machines, and close to none improvement on low-core count machines.  We can
+observe a near $35\%$ improvement when compiling GCC with bootstrap disabled,
+$25\%$ when bootstrap is enabled, and $15\%$ improvement when compiling Git
+compared to \texttt{make -j64} alone. Our jobserver implementation also
+squeezed a small improvement in GCC compilation, but showed a massive slowdown
+in Git. This is because Jobserver integration has interprocess communication
+cost with Make, which is a problem if the size of the partitions is small.
+Other than this, we seen no significant speedup or slowdown in these
+other projects.
 
-\begin{table}[]
+The most exciting result of these tests was the 35% speedup when compiling GCC,
+which caught our attention. There must be some property in this project that
+made our parallel compiler perform so well when compared to other projects.
+Therefore, we executed one more experiment to profile how does the per file
+parallelism behave specifically on GCC. We compiled GCC once more, registering
+the timestamp of the beginning and the end of each file compilation. This
+resulted in an interval graph, which we show in Figure
+\ref{fig:analysis_classical}.  In this figure, it is clear that some automated
+generated files simply bottleneck the entire compilation process. When we
+enabled the internal threading feature as described above, it reduced the time
+taken to compile these files, as illustrated in Figure
+\ref{fig:analysis_classical_parallel}.  For instance, we were not able to
+reproduce this behavior on the Linux Kernel, meaning that the compilation time is
+evenly distributed across the files in this project.
+
+Another interesting observation from both Figures \ref{fig:analysis_classical} and
+\ref{fig:analysis_classical_parallel} is the high amount of serial steps when
+compiling GCC until the high throughput compilation phase starts. This can be
+attributed to GNU Autotools configuring the compiler for the environment of the
+machine. Perhaps the configure part could be parallelized as well, and this
+could improve several projects across the board, or replace this tool
+altogether with another that can better handle parallelism.
+
+
+\begin{table*}[]
 \makebox[\textwidth][c]{
-\begin{tabular}{l|c|c|c|c|c|c|c}
+\begin{tabular}{l|c|c|c|c|c|c|c|c}
 \cline{2-7}
                                        & \multicolumn{3}{c|}{Core-i7}     & \multicolumn{3}{c|}{Opteron 6376}                                                                & \multicolumn{1}{l}{}               \\ \hline
-\multicolumn{1}{|l|}{File}             & Sequential & 8 Threads & Speedup & \multicolumn{1}{l|}{Sequential} & \multicolumn{1}{l|}{64 Threads} & \multicolumn{1}{l|}{Speedup} & \multicolumn{1}{c|}{Autogenerated} \\ \hline
-\multicolumn{1}{|l|}{gimple-match.c}   & $76s$        & $31s$       & $2.4\times$     & $221s$                            & $66s$                             & $3.32\times$                         & \multicolumn{1}{c|}{yes}           \\ \hline
-\multicolumn{1}{|l|}{insn-emit.c}      & $23s$        & $10s$       & $2.25\times$    & $97s$                             & $37s$                             & $3.53\times$                         & \multicolumn{1}{c|}{yes}           \\ \hline
-\multicolumn{1}{|l|}{tree-vect-stmt.c} & $11s$        & $5s$        & $2.14\times$    & $32s$                             & $13s$                             & $2.46\times$                         & \multicolumn{1}{c|}{no}            \\ \hline
+\multicolumn{1}{|l|}{File}             & Sequential & 8 Threads & Speedup & \multicolumn{1}{l|}{Sequential} & \multicolumn{1}{l|}{64 Threads} & \multicolumn{1}{l|}{Speedup} & \multicolumn{1}{c|}{Autogenerated} & \multicolumn{1}{c|}{LoC}  \\ \hline
+\multicolumn{1}{|l|}{gimple-match.c}   & $76s$        & $31s$       & $2.4\times$     & $221s$                            & $66s$                             & $3.32\times$                         & \multicolumn{1}{c|}{yes} & \multicolumn{1}{c|}{$244320$}          \\ \hline
+\multicolumn{1}{|l|}{insn-emit.c}      & $23s$        & $10s$       & $2.25\times$    & $97s$                             & $37s$                             & $3.53\times$                         & \multicolumn{1}{c|}{yes}  & \multicolumn{1}{c|}{$273482$}         \\ \hline
+\multicolumn{1}{|l|}{tree-vect-stmt.c} & $11s$        & $5s$        & $2.14\times$    & $32s$                             & $13s$                             & $2.46\times$                         & \multicolumn{1}{c|}{no}    & \multicolumn{1}{c|}{$117285$}        \\ \hline
+\multicolumn{1}{|l|}{brig-lang.c} & $10s$        & $15	s$        & $0.7\times$    & $29s$                             & $35s$                             & $0.8\times$                         & \multicolumn{1}{c|}{yes}    & \multicolumn{1}{c|}{$117087$}        \\ \hline
 \end{tabular}
 }
 \caption{Speedup of highlighted files}
 \label{table:files}
-\end{table}
+\end{table*}
 
-\begin{figure}
-\centering
-	 \includegraphics[scale=0.6]{figuras/times-insns-crop.pdf}
-	  \caption{Compilation of each file with 1, 2, 4, and 8 threads on
-	  Core-i7}
-	  \label{fig:gcc_all_files}
-\end{figure}
+%\begin{figure*}
+%\begin{minipage}[b]{0.5\textwidth}
+%\includegraphics[scale=0.4]{figuras/times-insns-crop.pdf}
+%%\subcaption{A subfigure}
+%\end{minipage}%
+%\begin{minipage}[b]{0.5\textwidth}
+%\includegraphics[scale=0.4]{figuras/times-speedup-crop.pdf}
+%%\subcaption{Another subfigure}
+%\end{minipage}%
+%\caption{Times and Speedups of selected files with 1, 2, 4 and 8 threads on Core-i7}
+%\label{fig:gcc_all_files}
+%\end{figure*}
 
-\begin{figure}
+\begin{figure*}
 \centering
-	 \includegraphics[scale=0.85]{figuras/experiment_projects_new-crop.pdf}
+	 \includegraphics[scale=0.9]{figuras/experiment_projects_new-crop.pdf}
 	  \caption{Compilation of some projects with 64 Makefile jobs and 8 threads in compiler in Opteron 6376}
 	  \label{fig:gcc_projects}
-\end{figure}
+\end{figure*}
 
+\begin{figure*}[ht]
+% \vspace*{-2cm}%
+ \noindent%
+% \hspace*{-2cm}%
+    \includegraphics[width=0.76\paperwidth]{seq-crop.pdf}
+    \captionof{figure}{Compilation time of GCC without our modifications}
+    \label{fig:analysis_classical}
+\end{figure*}
+\vfill
+\begin{figure*}[ht]
+% \vspace*{-2cm}%
+ \noindent%
+% \hspace*{-2cm}%
+    \includegraphics[width=0.76\paperwidth]{par-crop.pdf}
+    \captionof{figure}{Compilation time of GCC, using 8 internal threads
+	and partition if $\textit{Number of Instructions} > 10^3$}
+    \label{fig:analysis_classical_parallel}
+\end{figure*}
 \section{Conclusions, Issues, and Future Works}\label{sec:future_works}
 
 We have shown a tangible way of compiling files in parallel capable
 of being implemented in industrial compilers, which resulted in
 speedups when compiling single files in parallel, as well as some
-speedup when compiling entire projects in manycore machines. However,
-There are several points in which our work can be improved.
+speedup when compiling entire projects in manycore machines. 
 
-First is by fixing the bugs which is already known. There is (1) a bug related
-to how our partitioner applier handle nodes created by the \textit{ipa-split}
-pass, and therefore we have disabled it for now; and (2) our partitioner
-applier do not remove debug symbols associated with removed nodes, resulting in
-unknown symbols being dumped into the final assembly. These bugs certainly prevents the
-current branch from being used in industrial environments (which is a good
-reason why this was not merged in upstream yet), but they are fine as a proof
-of concept to support our claims.
+Our main conclusion is that parallel file compilation is useful in two scenarios:
+the existence of massive autogenerated blob files in
+the project, which consumes a large amount of compilation time when compared to
+the remaining files of the project, and (2) the number of files in the project
+is not enough to fully populate the processors of the machine. This means that
+our approach have some limitations, but results in decent speedups in some
+cases. Else, our methodology performs as good as the default per-file compilation
+parallelism.
 
-Second is by implementing a better partitioner to the project. One main issue
-with our partitioner is that we kept its load balancing algorithm minimal to
-ensure that it works. Using the LTO default partitioner as a base is a good start.
+Furthermore, there are several points in which our work can be improved.
+First is by fixing the bugs which is already known. Mainly, the issue with our
+partitioner that applier do not remove debug symbols associated with removed
+nodes, resulting in duplicated symbols being dumped into the final assembly. This
+result in several unnecessary writes to disk, which slows down the parallel
+compilation process. This is an programming issue rather than a design flaw,
+and therefore it is still fine as a proof of concept to support our claims.
+Furthermore, this could be used in projects where LTO imposes an slowdown.
+Johnson \textit{et al.} show some of these projects when presenting ThinLTO
+\cite{thinlto}.
 
-Third, by modifying the driver to also support external compiler through GCC
-SPEC language. Our current implementation only checks if launching program
-is a known compiler/assembler/linker, and will get confused in languages that
-needs additional steps (such as CUDA).
+Second is by implementing a better load balancing algorithm to the project,
+once we only kept its load balancing algorithm minimal to ensure that it works.
+Using the LTO default partitioner as a base is a good start.
 
-Forth, try to develop a predictive model to decide if the input file is
-a good candidate for parallel compilation. Fig. \ref{fig:gcc_all_files} shows
+Third, try to develop a predictive model to decide if the input file is
+a good candidate for parallel compilation. Figure \ref{fig:gcc_all_files} shows
 a clear linear correlation between the expected number of instructions and time
 (and maybe it is the best parameter), but it may be possible to (statically)
 collect more information about the file for a better decision.
 
-And fifth, try to avoid partial linking and symbol promotion altogether
-by concatenating the generated assembly files, instead of linking every
-generated assembly file into temporary object files.
+And fourth, try to avoid partial linking and symbol promotion altogether by
+concatenating the generated assembly files, instead of linking every generated
+assembly file into temporary object files. This should eliminate any possibility
+that promoting symbols to public visibility may impact the binary performance
+in a negative way.
 
 We also would like to draw attention to LTO's WPA step, which still runs
 sequentially. Parallelizing this step, which includes all IPA passes would
 improve parallel compilation of projects across the board in both LTO mode and
 in our work. Profiling shows us that $11\%$ of the compilation time is spent in
-this mode, while our project parallelized $75\%$ of the compiler.
+this mode, while our project parallelized $79\%$ of the compiler.
 
-%
-% ---- Bibliography ----
-%
-% BibTeX users should specify bibliography style 'splncs04'.
-% References will then be sorted and formatted in the correct style.
-%
-% \bibliographystyle{splncs04}
-% \bibliography{mybibliography}
-%
-%\begin{thebibliography}{8}
-%\bibitem{ref_article1}
-%Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
-%
-%\bibitem{ref_lncs1}
-%Author, F., Author, S.: Title of a proceedings paper. In: Editor,
-%F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
-%Springer, Heidelberg (2016). \doi{10.10007/1234567890}
-%
-%\bibitem{ref_book1}
-%Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
-%Location (1999)
-%
-%\bibitem{ref_proc1}
-%Author, A.-B.: Contribution title. In: 9th International Proceedings
-%on Proceedings, pp. 1--2. Publisher, Location (2010)
-%
-%\bibitem{ref_url1}
-%LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
-%Oct 2017
-%\end{thebibliography}
-
-\bibliographystyle{splncs04}
-\bibliography{bibliography}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sample-base}
 
 \end{document}
+%</manuscript|acmsmall|acmsmall-submission|acmlarge|acmtog|sigconf|authordraft|sigplan|sigchi|sigchi-a|acmsmall-conf>
