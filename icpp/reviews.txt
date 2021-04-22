@@ -1,0 +1,97 @@
+ime:  Mar 22, 14:16
+Overall evaluation:  -2 (reject)
+
+he idea is interesting and promising but there are issues in usability. There are also many unclarified d	etails, that would need more time to be expressed and described properly; it looks a bit hasty.
+Summary: This paper presents a method to parallelize single-file compilation in multicore systems by adapting the partitioner used in the Link-Time Optimization (LTO) mechanism. Translation units can be partitioned and compiled in parallel with all (non-LTO) local optimizations available.
+
+I believe that the idea of further parallelizing steps of GCC and compilation in general is very relevant. I found the idea interesting and definitely worth exploring. It could result in an additional option/mode of GCC or other compilers for scenarios that could benefit from it. There are however some questions/weaknesses that I failed to justify with certainty by reading the paper:
+
+- The work is able to achieve inferior optimizations, equal to standard, non-LTO, that may be well acceptable for e.g. a testing/debugging build. But because of current implementation technical issues it appears that the project can not be used for debugging builds. This is a serious weakness, since a faster compilation is much more relevant and useful during a program's development/debugging; a production-level build happens much more seldom and can tolerate a slightly longer but highly optimized compilation. Thus, there is a certain usage hurdle here, which I hope will be mitigated in the future.  - The main issue I understand, even without taking into account the practical usage problems, is that this parallelization (as also indicated by the results) only benefits codebases with huge source files, which is *generally* -with all the relevant exceptions- not a very good practice for most software projects.  This is vividly illustrated in the results, by the impact the work has on compiling GCC itself, that has source files of thousands of lines because of the nature of the project, in contrast with the other examples used. For instance, Linux has a few really long files but the vast majority are up to some hundreds LoC and this is probably why there is hardly any benefit. This isn't necessarily negative, since one can completely avoid this approach for projects that don't benefit from it, but it drastically limits its scope.  - Complementing the above, I would be interested to see a discussion on selection of the projects used in evaluation; were there any particular properties in mind?  - Suggestion: It may be out of scope of the paper but it could be interesting to discuss if there are software projects that benefit less/negligibly from LTO performance-wise, for which this approach could have stronger merit.
+(OK: não dá para resolver agora).
+
+There is a very long related-work section, which is of-course not a negative by itself, but disproportionately short discussion of results. I would appreciate a more elaborate explanation of the results, potentially including discussion similar to my above comment (on source file lengths) as reasoning for the observed behavior (it is mentioned in the first paragraph of sec. 5 but not elaborated).
+(OK)
+
+Strengths:   - Parallelization of compilation steps is very interesting and well motivated. The title and abstract managed to immediately get my interest.   - Authors are generally honest about it being a 
+PoC, its limitations and future work required for a realistic adoption of it.
+(OK)
+
+Weaknesses: 
+- It is merely a PoC and can be considered a work-in-progress (OK: Não dá para resolver)
+- Very limited evaluation-results discussion (OK)
+ - Potentially limited scope (OK)
+ 
+ 
+Other comments:   1) Linux 5.19.6 is obviously a typo (as of March 2021 latest stable linux is 5.11). Yet it is repeated in both mentions, in the text and figure, making it impossible to deduce which was the actual kernel version used, and no link is provided in the references that could mitigate that. I am aware that this practically does not hinder reproduceability, as any recent kernel would behave the same in this experiment. It is, however, essential to provide the correct data. (OK)
+
+2) The left part of Figure 5 is not particularly useful, especially without any sort of elaboration; just looks like noise and only the upper right part could be discussed (but it isn't). In both parts the legend could be placed to the left, since it is hiding the actual data lines.
+(OK)
+
+3) Table 2 could benefit by showing -approximate- LoC for each file and also include files with no benefit or negative effect, in order to assist a more meaningful discussion (see my initial comments).
+(OK)
+
+4) Describing the algorithm in page 7: "checking for every node that may trigger the COMDAT to be copied into other partitions and group them into the same partition." This is a crucial point but neither the description nor Fig. 4 are clear. I have only assumed what the proposed approach is doing, and this is something important enough to be communicated with greater care.
+Minor: ref. [1] on COMDAT from an architecture-specific source is a bit confusing, as this is not an arch-specific feature. A more generic (e.g. ELF or GCC) source could be more consistent with the rest of the approach.
+Minor: phrasing could be improved throughout the whole paper. E.g. in the very first paragraph of the Intro "either through...languages; or by components..." is obviously a mistake as there are not only these 2 types of software. "From... to..." could be a substitute for "either...or". There are more such examples that may initially confuse a reader until they finally figure out the message correctly.
+Reviewer's confidence:  3 (medium)
+Confidential remarks for the program committee:  
+(none)
+------------------------------------------------------- Review 2 -------------------------------------------------------
+
+Time:  Mar 29, 11:31
+Overall evaluation:  -1 (weak reject)
+The paper was not an easy read, I found the writing style difficult to follow. It contains numerous spelling and grammatical errors - too many to enumerate.
+(ajudou muito amigão!)
+
+The paper presents a mechanism to parallelise the compilation of individual files in GCC. If I understand it correctly, a number of partitions is created which contain functions which are related in the call graph. Each partition is compiled as if a separate file. Functions which lie in the boundary of partitions are required by more than one partition. Their definition is given to one particular partition and the other partitions appear to receive prototypes only.
+I like the idea of the paper, but I think the results section is too weak. The results include some good speedups for single files and some decent speedups over entire projects. The results are curiously presented, however. Why are two machines used but for entirely different scenarios? How well does this process work compiling GCC using a smaller number of threads than 64, as are shown in Fig 5. And visa versa? It would be good to see a breakdown of where compile time is spent.
+(OK: Explicamos pq usamos a máquina de 64-threads)
+
+It was not clear to me how this would compare to, for instance, using llvm-extract to partition the program into multiple TUs and then compile those in parallel.
+(parece brisa)
+
+Reviewer's confidence:  3 (medium)
+Confidential remarks for the program committee:  
+(none)
+------------------------------------------------------- Review 3 -------------------------------------------------------
+
+Time:  Mar 29, 15:59
+Overall evaluation:  -1 (weak reject)
+The paper presents a technique for parallelizing the compilation of a single file in GCC. The GCC driver and LTO engine are modified to partition the file into multiple translation units that can be compiled in parallel then recombined. The evaluation shows speedup on individual files as well as large projects.
+I have the following concerns about the work:
+(1) The evaluation shows the impact of the parallelization on compilation time, but it does not show the impact on the execution time of the generated binary. I think evaluating the performance of the generated binary is a must to ensure that the parallelization has not hindered any inter-procedural optimizations and significantly impacted the efficiency of the generated code.
+(OK: impossível consertar agora)
+
+(2) It is interesting to show the performance improvement of individual files. However, what matters most is the performance on large projects since that is where execution time is most critical. For these projects, compilers can already extract parallelism by compiling different files in parallel. So the added value of parallelizing within files is expected to be small, and indeed, the evaluation shows this. The authors see benefits mainly on GCC, a little bit on git, and almost none on linux and json. I think the authors need to provide a better understanding of why GCC shows so much improvement in contrast to other projects. I also think the authors should evaluate on a larger number of projects to show whether their compile time improvements truly generalize and are worth the complexity being added to the compilation flow.
+(OK: impossível consertar agora)
+
+(3) One of the important pieces in the paper is the partitioning algorithm, however I found the description of this partitioning algorithm very brief (Section 3.2, paragraph 4). I think the authors should do a better job with explaning it. Perhaps a pseudocode listing can be included, and the example in Fig. 4 can be described more thoroughly. Also, the justification for using a new partitioning algorithm is not motivating. The authors say they use a new algorithm because the original one was complex and it was difficult to figure out why it was failing. This is a weak justification.
+(OK)
+
+(4) On multiple occassions, the authors mention that they had a "bug" and they "fixed" it without mentioning how ("resulting in some assertion failures, which were fixed after some debugging", "The reason for these issues was hard to find the reason of, but easy to fix", "We had to fix the gimplifier to avoid that"). These statements are not very useful to the reader. If the bug is a programming error, it is not important to report in the paper. If it is an assumption in the original design that was broken and requires redesign, then it is important to describe what the assumption was and what the fix was. The authors also report a couple of remaining bugs that they still need to fix ("There are several points in which our work can be improved. First is by fixing the bugs which is already known."). All these discussions are concerning and weaken the confidence in the results. It makes the work seem incomplete. I think the authors should complete the work and present a good understanding of their fixes before submitting.
+(OK)
+
+Reviewer's confidence:  4 (high)
+Confidential remarks for the program committee:  
+(none)
+------------------------------------------------------- Review 4 -------------------------------------------------------
+
+Time:  Mar 30, 00:24
+Overall evaluation:  -1 (weak reject)
+The authors propose parallization of GCC compilation for single files by re-using the effort put into parallelization of the LTO phase. They show benefits in compile time for various source codes (GCC, git, Linux).
+Good: - nice idea
+Weak: - big part of the paper is about engineering tricks   with small scientific contribution - flaws in evaluation
+While the paper describes a nice short-cut of using existing parallelization within a compiler phase (LTO) for single-file compilation, it focusses on engineering decisions using various tricks and work-arounds, which does not provide any new scientific insight to readers.
+This evaluation does not provide much insight. The work should be motivated by breakdowns of time spent in various phases for typical source files, motivating your solution. It should show how much the relevant phase could be shortend, and how this was achieved: how many partitions can be generated from source if various length?
+(OK: Isso não ajuda em nada)
+
+Fig. 5 is very hard to interpret. You cannot see speedups, but only big black blobs. While relation to file size may be interesting, You really should show speedup curves, which avoids the need to split the figures into two.
+(OK: arrumado)
+
+Fig. 6: do you have an explanation why GCC benefits from your strategy, but git much less, and kernel sources not at all? Is it because GCC has huge files?
+(OK: adicionado)
+Minor: - Linux 5.19.6 does not exist yet?
+(OK: era 5.8-rc6)
+
+Reviewer's confidence:  3 (medium)
+Confidential remarks for the program committee:  

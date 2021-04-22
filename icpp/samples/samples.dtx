@@ -224,13 +224,13 @@ GCC was started by Richard Stallman, with the first public release in March of
 project, with hundreds of thousands of lines of code, and perhaps the most used C/C++
 compiler in the Linux ecosystem.
 
-GCC was initially designed to compile programs one file at a time, meaning
-that it could not allow global cross-file optimizations because the compiler
-never had the opportunity to analyze the program as a whole. This scenario
-changed when Link Time Optimization (LTO) was proposed \cite{gcc-lto,whoprgoogle} and
-implemented \cite{glek2010optimizing}. GCC supports LTO by using
-\texttt{-flto}. Part of the LTO engine has already been parallelized, which
-inspired this work.
+GCC was initially designed to compile programs one file at a time, meaning that
+it could not allow global cross-file optimizations because there was not any
+data structure that allowed analyzing the program as a whole. This scenario
+changed when Link Time Optimization (LTO) was proposed
+\cite{gcc-lto,whoprgoogle} and implemented cite{glek2010optimizing}. GCC
+supports LTO by using \texttt{-flto}. Part of the LTO engine has already been
+parallelized, which inspired this work.
 
 The main contribution of this work is to answer the question about how can we modify an
 industrial scale compiler to compile single files in parallel. We address
@@ -327,7 +327,7 @@ vectorization). The authors managed a speedup of up to $3.35\times$ to this
 compilation stage, and up to $1.88\times$ in total compilation of a file when
 extending this technique to the RTL passes.
 
-Panchenko \textit{et.al.} \cite{panchenko2021lightning} presented Lightning
+Panchenko \textit{et al.} \cite{panchenko2021lightning} presented Lightning
 BOLT, a compiler that reads already compiled binaries and outputs an optimized
 version of them. The authors present a list of passes in which Lightning BOLT
 runs in parallel and briefly explain how they parallelized them. They include
@@ -404,7 +404,7 @@ parallel.
 
 This process is sketched in Figure \ref{fig:whopr_build}, where the linker
 wrapper is represented by \textit{collect2}, which firstly launch \textit{lto1}
-in WPA mode, and the second time it finally launches \textit{ld}. This process
+in WPA mode, and then it finally launches \textit{ld}. This process
 can be seen by launching gcc with \texttt{-flto -v}.
 
 \begin{figure}
@@ -523,7 +523,7 @@ optimizations only use summaries to avoid this memory footprint issue.
 
 \section{Inspiration and Profiling}\label{sec:profiling}
 
-On a previous attempt to parallelize GCC, Bernardino \textit{et.  al.}
+On a previous attempt to parallelize GCC, Bernardino \textit{et  al.}
 \cite{bernardino2020improving} presented a profiling report of how much time
 the compiler is consuming on each stage.  We used the \texttt{-ftime-report}
 from GCC and compile the file named \texttt{gimple-match.c} to reproduce the
@@ -581,7 +581,7 @@ files.
 
 We propose a modification in the LTO engine to make it work \textit{without}
 having the context of the \textit{entire} program. Once this   is done, we can
-use the LTO partitioner engine to partition the file and compile then in
+use the LTO partitioner engine to partition the file and compile it in
 parallel, similarly to LTO.
 
 Our approach differs from LTO mainly in how we handle the IPA.
@@ -621,7 +621,7 @@ a \textit{driver}, and it will launch the
 necessary programs for the user. In fact, this line launches three programs,
 as illustrated in Figure \ref{fig:gnu_toolchain}.
 
-Therefore, if we want our changes do not break the building scripts
+Therefore, if we want our changes to not break the building scripts
 (\textit{e.g.}, Makefile) used by most projects -- which is mostly launching
 \texttt{gcc file.c -c} which creates an object file \texttt{file.o} -- we must
 ensure that we create a single object file for each file, not multiple, as does
@@ -631,7 +631,7 @@ for merging objects file into one. Therefore, the solution to this problem is:
 	\item Patch the LTO \textit{partitioner} to communicate the location of
 	each created assembly file (.s) to the \textit{driver}. This can be
 	done by passing a hidden flag \texttt{-fadditional-asm=<file>}
-	by the driver to the partitioner, which the last will write to. This file can also
+	by the driver to the partitioner. This file can also
 	be replaced with a Named Pipe for better performance if needed.
 
 	Then, the partitioner checks if this flag has been passed to the compiler.
@@ -656,7 +656,7 @@ channel among the parts. The compiler then will partition the TU and forks
 itself into several child processes, one for each partition.
 
 Once multiple processes are created, the compiler will communicate its output
-.s file, and the driver then launch the assembler (\textit{as}) to
+.s file, and the driver will launch the assembler (\textit{as}) to
 generate several object files, to finally launch the linker (\textit{ld}) to
 merge them all into a single object file.
 
@@ -892,10 +892,10 @@ communication file, which the driver will read in the future. The partition
 number is important to guarantee that the build is reproducible, as we will
 discuss later.
 
-It is also important that some early step in the compiler does not emit
+It is also important that some early steps in the compiler does not emit
 assembly too early, such as were the case of the gimplifier in GCC, or else the
 output file will be incomplete. These cases could be easily detected by using
-an breakpoint and flushing the assembler output file before retargeting the new
+a breakpoint and flushing the assembler output file before retargeting the new
 assembler output file.
 
 Once the partition is applied to the child process, and the output file has
@@ -1005,8 +1005,12 @@ machine with make -j64 as the baseline and then enabling 8 internal threads in
 the compiler. We then enabled the jobserver integration feature and let it use
 how many threads as GNU Make allowed.
 
-The version of GCC used in the tests is available in the \texttt{icpp2021}
-branch of \texttt{git://gcc.gnu.org/git/gcc.git}, with hash \texttt{450b006f3}.
+The version of GCC used in the tests is available in
+\texttt{omitted}\footnote{omitted according to the double-blind policy}
+with hash \texttt{450b006f3}.
+%\texttt{icpp2021}
+%\texttt{git://gcc.gnu.org/git/gcc.git}
+%\texttt{450b006f3}
 
 %We ensure the correctness of our changes by:
 %\begin{enumerate}
@@ -1045,7 +1049,7 @@ then compiled into assembly by GCC. Furthermore, Figure
 \ref{fig:gcc_all_files} shows the timings and speedups of compiling files with
 Number of Instructions (insns) > $5\times 10^4$. We used the insns as a metric
 instead of Lines of Code (LoC) as it better captures template-heavy code that
-has to generate multiple functions for each argument type of the template from
+has to generate multiple functions for each argument from
 the same input. In this figure, we can see that for large files, we mostly got
 speedups in general. We managed speedups of up to a $2.4\times$ on Core-i7 when
 compiling individual files with 8 threads, and up to $3.53\times$ on Opteron
@@ -1111,7 +1115,7 @@ cost with Make, which is a problem if the size of the partitions is small.
 Other than this, we seen no significant speedup or slowdown in these
 other projects.
 
-The most exciting result of these tests was the 35% speedup when compiling GCC,
+The most exciting result of these tests was the 35\% speedup when compiling GCC,
 which caught our attention. There must be some property in this project that
 made our parallel compiler perform so well when compared to other projects.
 Therefore, we executed one more experiment to profile how does the per file
@@ -1205,16 +1209,16 @@ our approach have some limitations, but results in decent speedups in some
 cases. Else, our methodology performs as good as the default per-file compilation
 parallelism.
 
-Furthermore, there are several points in which our work can be improved.
-First is by fixing the bugs which is already known. Mainly, the issue with our
-partitioner that applier do not remove debug symbols associated with removed
-nodes, resulting in duplicated symbols being dumped into the final assembly. This
-result in several unnecessary writes to disk, which slows down the parallel
-compilation process. This is an programming issue rather than a design flaw,
-and therefore it is still fine as a proof of concept to support our claims.
-Furthermore, this could be used in projects where LTO imposes an slowdown.
-Johnson \textit{et al.} show some of these projects when presenting ThinLTO
-\cite{thinlto}.
+Furthermore, there are several points in which our work can be improved.  First
+is by fixing the bugs which are already known, although we consider that we
+have a valid working prototype. Mainly, the issue with our partitioner
+applier do not remove debug symbols associated with removed nodes, resulting in
+duplicated symbols being dumped into the final assembly. This result in several
+unnecessary writes to disk, which slows down the parallel compilation process.
+This is a programming issue rather than a design flaw, and therefore it is
+still fine as a proof of concept to support our claims.  Furthermore, this
+could be used in projects where LTO imposes a slowdown.  Johnson \textit{et
+al.} show some of these projects when presenting ThinLTO \cite{thinlto}.
 
 Second is by implementing a better load balancing algorithm to the project,
 once we only kept its load balancing algorithm minimal to ensure that it works.
