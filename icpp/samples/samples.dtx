@@ -11,6 +11,7 @@
 %<sigplan>\documentclass[sigplan,screen]{acmart}
 %<sigchi>\documentclass[sigchi]{acmart}
 %<sigchi-a>\documentclass[sigchi-a, nonacm]{acmart}
+%\documentclass[sigconf,review,anonymous]{acmart}
 
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -228,9 +229,29 @@ GCC was initially designed to compile programs one file at a time, meaning that
 it could not allow global cross-file optimizations because there was not any
 data structure that allowed analyzing the program as a whole. This scenario
 changed when Link Time Optimization (LTO) was proposed
-\cite{gcc-lto,whoprgoogle} and implemented cite{glek2010optimizing}. GCC
+\cite{gcc-lto,whoprgoogle} and implemented \cite{glek2010optimizing}. GCC
 supports LTO by using \texttt{-flto}. Part of the LTO engine has already been
 parallelized, which inspired this work.
+
+The main motivation of this work is to speed up the compilation of softwares
+that uses blob files, which might severely impact the compilation opportunity
+when using \texttt{make -j} only parallelism, imposing a bottleneck. This is very
+noticeable on high-core count machines, as illustrated by Figure
+\ref{fig:analysis_classical}. In this figure, we collect the compilation
+timestamp on the beginning and end of each GCC file, which resulted in this
+interval graph. One blob file responsible for such bottleneck in
+\texttt{gimple-match.c}, a file that holds several search-and-replace patterns
+for tree optimizations. We can also conclude that GCC has a compilation bottleneck
+due to these blob files.
+
+\begin{figure*}[ht]
+% \vspace*{-2cm}%
+ \noindent%
+% \hspace*{-2cm}%
+    \includegraphics[width=0.76\paperwidth]{seq-crop.pdf}
+    \captionof{figure}{Compilation interval graph of GCC without our modifications}
+    \label{fig:analysis_classical}
+\end{figure*}
 
 The main contribution of this work is to answer the question about how can we modify an
 industrial scale compiler to compile single files in parallel. We address
@@ -250,7 +271,7 @@ as an introduction to LTO in Section \ref{sec:related}.  Then, discuss the idea
 that motivated the development of this feature on Section \ref{sec:profiling},
 reproducing previous profiling experiments on GCC and computing an
 approximation about the best speedup archivable by our methods; to finally
-present our proposal on section Section \ref{sec:work}, as well as presenting
+present our proposal on Section \ref{sec:work}, as well as presenting
 some internal details of GCC. We then show how we ensured that our
 modifications are correct in Section \ref{sec:methods}; and finally, we present
 our results in Section \ref{sec:results} with a discussion about our findings and
@@ -320,13 +341,6 @@ aims to unify several Machine Learning frameworks and compilers IR \cite{mlir}.
 Its design also includes support to multithreaded compilation by supporting
 concurrent transversal and modification of the IR.
 
-There has been an attempt of parallelizing GCC by threading the GIMPLE
-intraprocedural pass manager \cite{bernardino2020improving}, which only
-requires information contained inside the function's body (\textit{e.g.}
-vectorization). The authors managed a speedup of up to $3.35\times$ to this
-compilation stage, and up to $1.88\times$ in total compilation of a file when
-extending this technique to the RTL passes.
-
 Panchenko \textit{et al.} \cite{panchenko2021lightning} presented Lightning
 BOLT, a compiler that reads already compiled binaries and outputs an optimized
 version of them. The authors present a list of passes in which Lightning BOLT
@@ -334,6 +348,13 @@ runs in parallel and briefly explain how they parallelized them. They include
 Control-Flow Graph Construction, Local Optimizations, Identical Code Folding,
 Frame optimizations, and Shrink Wrapping running in parallel. Speedups ranged
 up to $1.56\times$ when compared to the sequential version.
+
+There has been an attempt of parallelizing GCC by threading the GIMPLE
+intraprocedural pass manager \cite{bernardino2020improving}, which only
+requires information contained inside the function's body (\textit{e.g.}
+vectorization). The authors managed a speedup of up to $3.35\times$ to this
+compilation stage, and up to $1.88\times$ in total compilation of a file when
+extending this technique to the RTL passes.
 
 \subsection{Link Time Optimization (LTO)} \label{lto_section}
 
@@ -409,7 +430,7 @@ can be seen by launching gcc with \texttt{-flto -v}.
 
 \begin{figure}
 \tikzstyle{block} = [rectangle, draw, fill=white,
-    text width=6em, text centered, rounded corners, node distance=1cm and 0.5cm, minimum height=2em]
+    text width=6em, text centered, rounded corners, node distance=0.5cm and 0.5cm, minimum height=2em]
 \tikzstyle{line} = [draw, -latex]
 %\makebox[\textwidth][c]{
 
@@ -508,7 +529,7 @@ There are also papers using a profile-based approach rather than a whole-program
 analysis for cross-module optimizations.  Xinliang \textit{et al.}
 \cite{lipo} proposed LIPO, which embeds IPA in the generated
 binary with minimal overhead, and loads information about functions in other
-modules based on the profiling report. LIPO also removes the requirement of
+modules based on a profiling report. LIPO also removes the requirement of
 phony object dumps and link time wrappers when compared to LTO. Results showed
 a speedup of up to $10\times$ in compilation time when compared to Feedback
 Driven Optimization (FDO) alone.
@@ -548,7 +569,7 @@ In GCC, all Intraprocedural Analysis are executed after IPA. When LTO is
 enabled, that analysis is done in the LGEN stage, which already runs in
 parallel when LTO is activated \cite{glek2010optimizing}. This inspired us to
 transplant the LTO partitioner for per-file classical compilation instead of
-threading the compiler, which would result in a faster development process.
+threading the compiler, which resulted in a faster development process.
 
 Therefore, the main idea is to partition the TU into multiple partitions, and
 compile them separately \textit{after} the Interprocedural Optimizations were
@@ -574,7 +595,7 @@ $$\lim_{p \rightarrow +\infty} \frac{T_1}{T_p} = \lim_{p \rightarrow +\infty}
 +\infty} \frac{5}{1 + \frac{4}{p}} = 5$$
 
 Therefore, if we devise an mechanism to parallelize every Intraprocedural
-Optimization, we can archive up to $5\times$ speedup when compiling individual
+Optimization, we can theoretically archive up to $5\times$ speedup when compiling individual
 files.
 
 \section{Our Proposal} \label{sec:work}
@@ -750,7 +771,7 @@ them into the same partition. In practice, this means to include every node hit
 by a Depth-First Search (DFS) from the group to a non-cloned node outside of
 the group.  Algorithm \ref{alg:comdat} presents a pseudocode of this process.
 Most of this process is already present from the COMDAT dependency algorithm
-from LTO.  We added the logic to expand the partition side if a duplicated
+from LTO.  We added the logic to expand the partition frontier if a duplicated
 symbol is encountered, adding further non-duplicated symbols in to
 the boundary, as we illustrate in Figure \ref{fig:comdat_frontier}. Notice how
 $v_{16}$ is not added to the frontier, as is called by $v_{14}$, the symbol marked
@@ -808,7 +829,7 @@ as duplicated.
 			\State{unite partition of $u$ with partition $set$}
 			\State{merge\_comdat\_nodes($u$, $set$)}
 			\If{$u$ is a duplicated symbol} \Comment{If $v$ is a duplicated symbol, we must reach an non-duplicated symbol for the frontier}
-				merge\_comdat\_nodes($u$, $set$)
+				\State{merge\_comdat\_nodes($u$, $set$)}
 			\EndIf
 		\EndFor
 	\EndIf
@@ -994,14 +1015,14 @@ For the projects, we collected $n = 5$ samples because compilation is a
 computer intensive task. We made sure that in every test, \texttt{-g0} was
 passed for fairness, once in the current state we do not eliminate debug
 symbols that are assigned to other partitions, which if enabled imposes an
-unfair overhead that does not exist on the sequential version.
+unfair overhead due to several unnecessary writes to disk because of duplicated
+debug symbols, slowing down the parallel compilation process.
 
 Tests were mainly executed in two computers, which are represented
 in Table \ref{table:machines}. The graphic caption specifies where the test
 was run.
-
 For the tests regarding the compilation of entire projects, we used the Opteron
-machine with make -j64 as the baseline and then enabling 8 internal threads in
+machine with \texttt{make -j64} as the baseline and then enabling 8 internal threads in
 the compiler. We then enabled the jobserver integration feature and let it use
 how many threads as GNU Make allowed.
 
@@ -1039,6 +1060,7 @@ with hash \texttt{450b006f3}.
 \end{tabular}
 \caption{Machine specification of tests}
 \label{table:machines}
+\vspace{-0.7cm}
 \end{table}
 
 \section{Results}\label{sec:results}
@@ -1053,17 +1075,16 @@ has to generate multiple functions for each argument from
 the same input. In this figure, we can see that for large files, we mostly got
 speedups in general. We managed speedups of up to a $2.4\times$ on Core-i7 when
 compiling individual files with 8 threads, and up to $3.53\times$ on Opteron
-6376 when with 64 threads. These speedup results is reasonably distant than
+6376 when with 64 threads. These speedup results are reasonably distant than
 the linear optimal ($4.4$ if $p = 32$), so these results could be further improved.
 
-We also notice that there is a file with $0.7\times$ speedup
-(\textit{i.e}., a slowdown) named \texttt{brig-lang.c}. The reason for that is
-the existence of a massive blob function that is appended to that file during
-the compilation process (47261 insns, while the file itself has 55927 insns).
-This was not observed in the remaining files. Since we partition the file by
-functions and global variables, and this function consumes practically the
-entirety of compilation time, we were not able to extract any meaningful
-parallelism from this file.
+We also notice that there is a file with $0.7\times$ speedup (\textit{i.e}., a
+slowdown) named \texttt{brig-lang.c}. The reason for that is the existence of a
+massive blob function that is generated when compiling this file (47261 insns,
+while the file itself has 55927 insns).  This was not observed in the remaining
+files. Since we partition the file by functions and global variables, and this
+function consumes practically the entirety of compilation time, we were not
+able to extract any meaningful parallelism here.
 
 %\begin{figure}
 %\centering
@@ -1094,12 +1115,14 @@ parallelism from this file.
 \end{figure*}
 
 We will now discuss how our proposed changes impact the overall compilation
-time of some projects. For this, we run experiments compiling the Linux Kernel
-5.8-rc6, Git 2.30.0, the GCC version mentioned in Section \ref{sec:methods}
-with and without bootstrap enabled, and JSON C++, with commit hash
-\texttt{01f6b2e7418537}. We selected those projects as they are very often used
-on the Open Source community.  We have only enabled jobserver integration in
-GCC and Git, because it is necessary to modify an absolute large number of
+time of some projects. The objective is to check if this parallel file
+compilation mechanism generalizes to other projects that do not have those
+massive blob files, as in GCC.  For this, we run experiments compiling the
+Linux Kernel 5.8-rc6, Git 2.30.0, the GCC version mentioned in Section
+\ref{sec:methods} with and without bootstrap enabled, and JSON C++, with commit
+hash \texttt{01f6b2e7418537}. We selected those projects as they are very often
+used on the Open Source community.  We have only enabled jobserver integration
+in GCC and Git, because it is necessary to modify an absolute large number of
 Makefiles for that (for instance, Linux has 2597 Makefiles).
 
 In Figure \ref{fig:gcc_projects} we show our results. We ran this benchmark on a
@@ -1115,20 +1138,24 @@ cost with Make, which is a problem if the size of the partitions is small.
 Other than this, we seen no significant speedup or slowdown in these
 other projects.
 
-The most exciting result of these tests was the 35\% speedup when compiling GCC,
-which caught our attention. There must be some property in this project that
-made our parallel compiler perform so well when compared to other projects.
-Therefore, we executed one more experiment to profile how does the per file
-parallelism behave specifically on GCC. We compiled GCC once more, registering
-the timestamp of the beginning and the end of each file compilation. This
-resulted in an interval graph, which we show in Figure
-\ref{fig:analysis_classical}.  In this figure, it is clear that some automated
-generated files simply bottleneck the entire compilation process. When we
-enabled the internal threading feature as described above, it reduced the time
-taken to compile these files, as illustrated in Figure
-\ref{fig:analysis_classical_parallel}.  For instance, we were not able to
-reproduce this behavior on the Linux Kernel, meaning that the compilation time is
-evenly distributed across the files in this project.
+
+We first analyze why GCC had such a 35\% speedup. In Figure
+\ref{fig:analysis_classical_parallel}, we plot the interval graph of each file
+again, but in this time enabling threads inside the compiler. We can observe a
+significant reduction in both file compilation time and the parallelism bottleneck.
+This is due to our parallel file compilation mechanism. 
+
+Now, this 15\% improvement on Git was not expected at first, which was an
+excitement. Analyzing the compilation process of git, we found that it simply
+did not have enough files to fully populate the 64-threaded Opteron machine.
+Therefore, the extra parallelism added by our method improved the CPU usage
+here.  However, this project compiles quite fast in this machine ($5s$), so the
+improvement is not much noticeable in practice.
+
+However, on the Linux kernel, we see no improvement nor slowdown by our
+technique. The reason is that the files in this project compile very fast, and
+it is evenly distributed through the processors' cores. The same thing applied
+to the JSON C++ project.
 
 Another interesting observation from both Figures \ref{fig:analysis_classical} and
 \ref{fig:analysis_classical_parallel} is the high amount of serial steps when
@@ -1147,8 +1174,8 @@ altogether with another that can better handle parallelism.
 \multicolumn{1}{|l|}{File}             & Sequential & 8 Threads & Speedup & \multicolumn{1}{l|}{Sequential} & \multicolumn{1}{l|}{64 Threads} & \multicolumn{1}{l|}{Speedup} & \multicolumn{1}{c|}{Autogenerated} & \multicolumn{1}{c|}{LoC}  \\ \hline
 \multicolumn{1}{|l|}{gimple-match.c}   & $76s$        & $31s$       & $2.4\times$     & $221s$                            & $66s$                             & $3.32\times$                         & \multicolumn{1}{c|}{yes} & \multicolumn{1}{c|}{$244320$}          \\ \hline
 \multicolumn{1}{|l|}{insn-emit.c}      & $23s$        & $10s$       & $2.25\times$    & $97s$                             & $37s$                             & $3.53\times$                         & \multicolumn{1}{c|}{yes}  & \multicolumn{1}{c|}{$273482$}         \\ \hline
-\multicolumn{1}{|l|}{tree-vect-stmt.c} & $11s$        & $5s$        & $2.14\times$    & $32s$                             & $13s$                             & $2.46\times$                         & \multicolumn{1}{c|}{no}    & \multicolumn{1}{c|}{$117285$}        \\ \hline
-\multicolumn{1}{|l|}{brig-lang.c} & $10s$        & $15	s$        & $0.7\times$    & $29s$                             & $35s$                             & $0.8\times$                         & \multicolumn{1}{c|}{yes}    & \multicolumn{1}{c|}{$117087$}        \\ \hline
+\multicolumn{1}{|l|}{tree-vect-stmt.c} & $11s$        & $5s$        & $2.14\times$    & $32s$                             & $13s$                             & $2.46\times$                         & \multicolumn{1}{c|}{no}    & \multicolumn{1}{c|}{$12133/$}        \\ \hline
+\multicolumn{1}{|l|}{brig-lang.c} & $10s$        & $15	s$        & $0.7\times$    & $29s$                             & $35s$                             & $0.8\times$                         & \multicolumn{1}{c|}{no}    & \multicolumn{1}{c|}{$958$}        \\ \hline
 \end{tabular}
 }
 \caption{Speedup of highlighted files}
@@ -1170,20 +1197,20 @@ altogether with another that can better handle parallelism.
 
 \begin{figure*}
 \centering
-	 \includegraphics[scale=0.9]{figuras/experiment_projects_new-crop.pdf}
+	 \includegraphics[scale=0.8]{figuras/experiment_projects_new-crop.pdf}
 	  \caption{Compilation of some projects with 64 Makefile jobs and 8 threads in compiler in Opteron 6376}
 	  \label{fig:gcc_projects}
 \end{figure*}
 
-\begin{figure*}[ht]
-% \vspace*{-2cm}%
- \noindent%
-% \hspace*{-2cm}%
-    \includegraphics[width=0.76\paperwidth]{seq-crop.pdf}
-    \captionof{figure}{Compilation time of GCC without our modifications}
-    \label{fig:analysis_classical}
-\end{figure*}
-\vfill
+%\begin{figure*}[ht]
+%% \vspace*{-2cm}%
+% \noindent%
+%% \hspace*{-2cm}%
+%    \includegraphics[width=0.76\paperwidth]{seq-crop.pdf}
+%    \captionof{figure}{Compilation time of GCC without our modifications}
+%    \label{fig:analysis_classical}
+%\end{figure*}
+%\vfill
 \begin{figure*}[ht]
 % \vspace*{-2cm}%
  \noindent%
@@ -1200,35 +1227,32 @@ of being implemented in industrial compilers, which resulted in
 speedups when compiling single files in parallel, as well as some
 speedup when compiling entire projects in manycore machines. 
 
-Our main conclusion is that parallel file compilation is useful in two scenarios:
-the existence of massive autogenerated blob files in
-the project, which consumes a large amount of compilation time when compared to
-the remaining files of the project, and (2) the number of files in the project
+Our main conclusion is that parallel file compilation is useful in two
+scenarios: (1) in the existence of massive autogenerated blob files in the the
+project, which consumes a large amount of compilation time when compared to the
+remaining files of the project, and (2) if the number of files in the project
 is not enough to fully populate the processors of the machine. This means that
-our approach have some limitations, but results in decent speedups in some
-cases. Else, our methodology performs as good as the default per-file compilation
-parallelism.
+our approach has some generalization limitations, but can result in
+speedups. Else, our methodology performs as well as the default
+per-file compilation parallelism.  Furthermore, if this is implemented as a
+feature in a compiler, it could be used in projects where LTO imposes a
+slowdown.  Johnson \textit{et al.} show some of these projects when presenting
+ThinLTO \cite{thinlto}.
 
-Furthermore, there are several points in which our work can be improved.  First
-is by fixing the bugs which are already known, although we consider that we
-have a valid working prototype. Mainly, the issue with our partitioner
-applier do not remove debug symbols associated with removed nodes, resulting in
-duplicated symbols being dumped into the final assembly. This result in several
-unnecessary writes to disk, which slows down the parallel compilation process.
-This is a programming issue rather than a design flaw, and therefore it is
-still fine as a proof of concept to support our claims.  Furthermore, this
-could be used in projects where LTO imposes a slowdown.  Johnson \textit{et
-al.} show some of these projects when presenting ThinLTO \cite{thinlto}.
+Furthermore, there are several points in which our work can be improved.
+Mainly, the issue with our partitioner applier not removing debug symbols
+associated with removed nodes, resulting in duplicated symbols being dumped
+into the final assembly. This is a programming issue rather than a design flaw,
+and therefore it is still fine as a proof of concept to support our claims.
 
 Second is by implementing a better load balancing algorithm to the project,
-once we only kept its load balancing algorithm minimal to ensure that it works.
+once we only kept its load balancing algorithm minimal. 
 Using the LTO default partitioner as a base is a good start.
 
 Third, try to develop a predictive model to decide if the input file is
 a good candidate for parallel compilation. Figure \ref{fig:gcc_all_files} shows
-a clear linear correlation between the expected number of instructions and time
-(and maybe it is the best parameter), but it may be possible to (statically)
-collect more information about the file for a better decision.
+a clear linear correlation between the expected number of instructions and time,
+but it may be possible to use other informations as well.
 
 And fourth, try to avoid partial linking and symbol promotion altogether by
 concatenating the generated assembly files, instead of linking every generated
